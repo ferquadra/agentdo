@@ -50,6 +50,8 @@ spl_autoload_register(function ($class) {
     }
 });
 
+Storage::ensureRuntimeDirs();
+
 function url($path = '')
 {
     $base = $GLOBALS['app_base'];

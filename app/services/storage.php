@@ -52,8 +52,19 @@ class Storage
     {
         self::assertLowercasePath($dir);
         if (!is_dir($dir)) {
-            mkdir($dir, 0755, true);
+            if (!@mkdir($dir, 0755, true) && !is_dir($dir)) {
+                throw new RuntimeException('mkdir_failed:' . $dir);
+            }
         }
+        if (!is_writable($dir)) {
+            throw new RuntimeException('dir_not_writable:' . $dir);
+        }
+    }
+
+    public static function ensureRuntimeDirs()
+    {
+        self::ensureDir(self::webfiles());
+        self::ensureDir(self::lockDir());
     }
 
     public static function proyectoDir($empresa, $cliente, $proyecto)

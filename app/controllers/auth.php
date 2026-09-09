@@ -157,7 +157,13 @@ class AuthController extends Controller
                 return true;
             });
         } catch (Exception $e) {
-            $this->renderCrear('No se pudo crear la empresa. Reintentá.', $codigo);
+            $msg = 'No se pudo crear la empresa. Reintentá.';
+            if (strpos($e->getMessage(), 'dir_not_writable:') === 0
+                || strpos($e->getMessage(), 'mkdir_failed:') === 0
+                || $e->getMessage() === 'lock_open') {
+                $msg = 'No hay permiso de escritura en webfiles/ o lock/. Revisá que existan y pertenezcan a www-data.';
+            }
+            $this->renderCrear($msg, $codigo);
             return;
         }
 

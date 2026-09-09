@@ -167,8 +167,8 @@ Wizard crear empresa (sesión `$_SESSION['wizard']`):
 
 Panel:
 
-- `/panel` — listado de proyectos (última actualización) + crear cliente/proyecto.
-- `/panel/clientes` — listado por fecha de alta; editar solo nombre; borrar con confirmación.
+- `/panel` — listado de proyectos (última actualización) + crear cliente/proyecto. Filtro por cliente (`?cliente={codigo}`): buscador con nombre, código y cantidad. Clic en un cliente desde `/panel/clientes` abre este listado ya filtrado.
+- `/panel/clientes` — listado por fecha de alta; código/nombre/cantidad llevan a los proyectos de ese cliente; editar solo nombre; borrar con confirmación; **Crear proyecto** preselecciona el cliente.
 - `/panel/{cliente}/{proyecto}` — workspace: margen izquierda (nota, enlace, dropzone) + diario derecha. Autosave debounce 1.2s. Chips Escribiendo / Guardando / Guardado.
 - Adjuntos: carpeta `margen/{hash}/`. Enlace público `GET /a/{hash}.{ext}` (ej. `/a/abc….pdf`). El punto de la extensión es literal: el router usa `preg_quote` en los trozos fijos; sin eso `{hash}.{ext}` no matchea.
 - JSON público del proyecto: botón **JSON** al lado del título en el workspace. Enlace `GET /j/{hash}.json` (hash 40 `[a-z0-9]`, sin login). Índice en `webfiles/_shares.sqlite` tabla `json_shares`. El documento se arma en vivo (diario + margen + URLs de adjuntos). Borrar cliente también borra esas filas.
@@ -223,6 +223,13 @@ curl -s -X POST "$BASE/api/v1/auth" \
 ## PHP 7.3 — permitido
 
 `password_hash` / `password_verify`, nullable types en firmas, `void`, PDO, JSON, sesiones, `flock`.
+
+## Despliegue (servidor)
+
+- Document root en la raíz del dominio: `.htaccess` **sin** `RewriteBase /agentdo/` (o usar `RewriteBase /`).
+- `webfiles/` y `lock/` deben existir y ser **escribibles** por el usuario de Apache (`www-data`). El bootstrap llama `Storage::ensureRuntimeDirs()` al arrancar; si fallan permisos, la app no escribe SQLite ni crea tenants.
+- Tras clonar/desplegar: `chown -R www-data:www-data webfiles lock` y `chmod 775 webfiles lock` (o equivalente).
+- La carpeta `webfiles/{empresa}/` **se crea sola** al dar de alta una empresa; no hay que crearla a mano. Si falla el alta, revisar PDO SQLite (`php -m | grep pdo_sqlite`) y permisos de esas dos carpetas.
 
 ## Notas para retomar
 
