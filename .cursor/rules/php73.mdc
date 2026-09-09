@@ -1,0 +1,30 @@
+---
+description: Vetos de sintaxis PHP 7.3.33 para AgentDo
+alwaysApply: true
+---
+
+# PHP 7.3.33
+
+AgentDo corre en PHP 7.3.33. No uses sintaxis posterior.
+
+```php
+// ❌ BAD
+public string $name;
+fn($x) => $x * 2;
+$user?->email;
+foo(name: $n);
+match ($x) { 1 => 'a', default => 'b' };
+function x(int|string $v) {}
+public function __construct(private $db) {}
+
+// ✅ GOOD
+public $name;
+function ($x) { return $x * 2; };
+$user !== null ? $user->email : null;
+foo($n);
+if ($x === 1) { $r = 'a'; } else { $r = 'b'; }
+function x($v) {}
+public function __construct($db) { $this->db = $db; }
+```
+
+Archivos y carpetas en disco: solo minúsculas. Clases PascalCase en código; archivo `home.php`.
