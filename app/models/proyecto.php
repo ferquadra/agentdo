@@ -1,15 +1,24 @@
 <?php
 class Proyecto
 {
-    public static function listAll($empresa)
+    public static function listAll($empresa, $cliente = '')
     {
         $db = Empresa::open($empresa);
-        $st = $db->query(
-            'SELECT p.cliente, p.codigo, p.titulo, p.updated_at, p.created_at, c.nombre AS cliente_nombre
+        $sql = 'SELECT p.cliente, p.codigo, p.titulo, p.updated_at, p.created_at, c.nombre AS cliente_nombre
              FROM proyectos p
-             LEFT JOIN clientes c ON c.codigo = p.cliente
-             ORDER BY p.updated_at DESC'
-        );
+             LEFT JOIN clientes c ON c.codigo = p.cliente';
+        if ($cliente !== '') {
+            Storage::assertCode($cliente);
+            $sql .= ' WHERE p.cliente = :cl';
+        }
+        $sql .= ' ORDER BY p.updated_at DESC';
+        if ($cliente !== '') {
+            $st = $db->prepare($sql);
+            $st->bindValue(':cl', $cliente, PDO::PARAM_STR);
+            $st->execute();
+        } else {
+            $st = $db->query($sql);
+        }
         $rows = $st->fetchAll();
         $db = null;
         return $rows;

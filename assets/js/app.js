@@ -82,10 +82,147 @@
         }
     }
 
+    var $clientFilter = $('.js-client-filter');
+    if ($clientFilter.length) {
+        initClientFilter($clientFilter);
+    }
+
     /* Workspace */
     var $ws = $('.workspace');
     if ($ws.length) {
         initWorkspace($ws);
+    }
+
+    function initClientFilter($root) {
+        var $trigger = $root.find('.js-client-filter-trigger');
+        var $menu = $root.find('.js-client-filter-menu');
+        var $search = $root.find('.js-client-filter-search');
+        var $items = $root.find('.js-client-filter-item');
+        var $empty = $root.find('.js-client-filter-empty');
+        var $options = $items.find('.client-filter-option');
+
+        function visibleItems() {
+            return $items.filter(function () {
+                return $(this).css('display') !== 'none';
+            });
+        }
+
+        function setFocusIndex(index) {
+            var $vis = visibleItems();
+            $options.removeClass('is-focus');
+            if (!$vis.length) {
+                return -1;
+            }
+            if (index < 0) {
+                index = $vis.length - 1;
+            }
+            if (index >= $vis.length) {
+                index = 0;
+            }
+            var $opt = $vis.eq(index).find('.client-filter-option');
+            $opt.addClass('is-focus');
+            var el = $opt.get(0);
+            if (el && el.scrollIntoView) {
+                el.scrollIntoView({ block: 'nearest' });
+            }
+            return index;
+        }
+
+        function currentFocusIndex() {
+            var $vis = visibleItems();
+            var i = -1;
+            $vis.each(function (idx) {
+                if ($(this).find('.client-filter-option').hasClass('is-focus')) {
+                    i = idx;
+                    return false;
+                }
+            });
+            return i;
+        }
+
+        function open() {
+            $menu.prop('hidden', false);
+            $root.attr('data-open', '1');
+            $trigger.attr('aria-expanded', 'true');
+            $search.val('');
+            filterItems('');
+            $search.trigger('focus');
+            var active = 0;
+            visibleItems().each(function (idx) {
+                if ($(this).find('.client-filter-option').hasClass('is-active')) {
+                    active = idx;
+                    return false;
+                }
+            });
+            setFocusIndex(active);
+        }
+
+        function close() {
+            $menu.prop('hidden', true);
+            $root.attr('data-open', '0');
+            $trigger.attr('aria-expanded', 'false');
+            $options.removeClass('is-focus');
+        }
+
+        function isOpen() {
+            return $root.attr('data-open') === '1';
+        }
+
+        function filterItems(q) {
+            q = $.trim(q).toLowerCase();
+            var visible = 0;
+            $items.each(function () {
+                var hay = ($(this).attr('data-search') || '').indexOf(q) !== -1;
+                $(this).toggle(hay);
+                if (hay) {
+                    visible += 1;
+                }
+            });
+            $empty.toggleClass('d-none', visible !== 0);
+            setFocusIndex(0);
+        }
+
+        $trigger.on('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (isOpen()) {
+                close();
+            } else {
+                open();
+            }
+        });
+
+        $search.on('input', function () {
+            filterItems($(this).val());
+        });
+
+        $search.on('keydown', function (e) {
+            var key = e.key || e.which;
+            if (key === 'ArrowDown' || key === 40) {
+                e.preventDefault();
+                setFocusIndex(currentFocusIndex() + 1);
+            } else if (key === 'ArrowUp' || key === 38) {
+                e.preventDefault();
+                setFocusIndex(currentFocusIndex() - 1);
+            } else if (key === 'Enter' || key === 13) {
+                var $vis = visibleItems();
+                var idx = currentFocusIndex();
+                if (idx >= 0 && $vis.eq(idx).length) {
+                    e.preventDefault();
+                    window.location.href = $vis.eq(idx).find('a').attr('href');
+                }
+            } else if (key === 'Escape' || key === 27) {
+                e.preventDefault();
+                close();
+                $trigger.trigger('focus');
+            }
+        });
+
+        $(document).on('click.clientFilter', function (e) {
+            if (!$root.is(e.target) && $root.has(e.target).length === 0) {
+                close();
+            }
+        });
     }
 
     function initWorkspace($root) {

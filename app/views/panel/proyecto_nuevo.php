@@ -35,7 +35,13 @@
                     <input class="form-control" type="text" id="titulo" name="titulo" value="<?php echo e($titulo); ?>" required maxlength="160" placeholder="Portal web">
                 </div>
                 <div class="d-flex gap-2">
-                    <a class="btn btn-outline-ghost" href="<?php echo e(url('panel')); ?>">Cancelar</a>
+                    <?php
+                    $cancelUrl = url('panel');
+                    if ($cliente !== '' && Storage::isCode($cliente)) {
+                        $cancelUrl .= '?cliente=' . rawurlencode($cliente);
+                    }
+                    ?>
+                    <a class="btn btn-outline-ghost" href="<?php echo e($cancelUrl); ?>">Cancelar</a>
                     <button type="submit" class="btn btn-accent flex-grow-1">Crear proyecto</button>
                 </div>
             </form>

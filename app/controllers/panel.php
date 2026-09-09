@@ -7,15 +7,28 @@ class PanelController extends Controller
         $empresa = $user['empresa'];
         Empresa::open($empresa);
 
-        $proyectos = Proyecto::listAll($empresa);
-        $clientesCount = Cliente::count($empresa);
+        $clientes = Cliente::listAll($empresa, 'nombre');
+        $clientesCount = count($clientes);
+        $filtroCodigo = strtolower($request->input('cliente'));
+        $filtroCliente = null;
+        if (Storage::isCode($filtroCodigo)) {
+            $filtroCliente = Cliente::find($empresa, $filtroCodigo);
+        }
+        $proyectos = Proyecto::listAll($empresa, $filtroCliente ? $filtroCliente['codigo'] : '');
+        $totalProyectos = 0;
+        foreach ($clientes as $c) {
+            $totalProyectos += (int) $c['proyectos'];
+        }
 
         $this->view('panel/index', array(
             'title' => $empresa . ' · ' . APP_NAME,
             'page' => 'panel',
             'user' => $user,
             'proyectos' => $proyectos,
+            'clientes' => $clientes,
             'clientesCount' => $clientesCount,
+            'totalProyectos' => $totalProyectos,
+            'filtroCliente' => $filtroCliente,
             'canWrite' => Auth::canWrite(),
         ));
     }

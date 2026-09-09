@@ -11,7 +11,7 @@ if (!empty($_SESSION['flash_error'])) {
             <div>
                 <p class="mono-label"><?php echo e($user['empresa']); ?> · clientes</p>
                 <h1 class="page-title mb-1">Clientes</h1>
-                <p class="muted mb-0">Ordenados por fecha de alta. Solo código y nombre.</p>
+                <p class="muted mb-0">Ordenados por fecha de alta. El código o el nombre abren los proyectos de ese cliente.</p>
             </div>
             <div class="panel-actions d-flex flex-wrap gap-2">
                 <a class="btn btn-outline-ghost" href="<?php echo e(url('panel')); ?>">← Panel</a>
@@ -33,7 +33,7 @@ if (!empty($_SESSION['flash_error'])) {
                 <?php endif; ?>
             </div>
         <?php else : ?>
-            <div class="admin-table app-card-wide">
+            <div class="admin-table admin-table-clientes app-card-wide">
                 <div class="admin-table-head mono">
                     <span>Código</span>
                     <span>Nombre</span>
@@ -42,12 +42,16 @@ if (!empty($_SESSION['flash_error'])) {
                     <span></span>
                 </div>
                 <?php foreach ($clientes as $c) : ?>
+                    <?php $proyectosUrl = url('panel') . '?cliente=' . rawurlencode($c['codigo']); ?>
                     <div class="admin-table-row">
-                        <span class="mono admin-code"><?php echo e($c['codigo']); ?></span>
-                        <span class="admin-name"><?php echo e($c['nombre']); ?></span>
+                        <a class="admin-link mono admin-code" href="<?php echo e($proyectosUrl); ?>"><?php echo e($c['codigo']); ?></a>
+                        <a class="admin-link admin-name" href="<?php echo e($proyectosUrl); ?>"><?php echo e($c['nombre']); ?></a>
                         <span class="mono admin-date muted"><?php echo e(format_dt($c['created_at'])); ?></span>
-                        <span class="mono admin-count"><?php echo (int) $c['proyectos']; ?></span>
+                        <a class="admin-link mono admin-count" href="<?php echo e($proyectosUrl); ?>" title="Ver proyectos"><?php echo (int) $c['proyectos']; ?></a>
                         <span class="admin-actions">
+                            <?php if ($canWrite) : ?>
+                                <a class="btn btn-ghost btn-sm" href="<?php echo e(url('panel/proyectos/nuevo') . '?cliente=' . rawurlencode($c['codigo'])); ?>">Crear proyecto</a>
+                            <?php endif; ?>
                             <a class="btn btn-ghost btn-sm" href="<?php echo e(url('panel/clientes/' . $c['codigo'] . '/editar')); ?>">
                                 <?php echo $canWrite ? 'Editar' : 'Ver'; ?>
                             </a>
