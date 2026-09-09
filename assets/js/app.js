@@ -94,6 +94,7 @@
     }
 
     function initClientFilter($root) {
+        var rootEl = $root.get(0);
         var $trigger = $root.find('.js-client-filter-trigger');
         var $menu = $root.find('.js-client-filter-menu');
         var $search = $root.find('.js-client-filter-search');
@@ -119,12 +120,7 @@
             if (index >= $vis.length) {
                 index = 0;
             }
-            var $opt = $vis.eq(index).find('.client-filter-option');
-            $opt.addClass('is-focus');
-            var el = $opt.get(0);
-            if (el && el.scrollIntoView) {
-                el.scrollIntoView({ block: 'nearest' });
-            }
+            $vis.eq(index).find('.client-filter-option').addClass('is-focus');
             return index;
         }
 
@@ -140,13 +136,16 @@
             return i;
         }
 
+        function isOpen() {
+            return $root.hasClass('is-open');
+        }
+
         function open() {
-            $menu.prop('hidden', false);
-            $root.attr('data-open', '1');
+            $menu.removeAttr('hidden');
+            $root.addClass('is-open');
             $trigger.attr('aria-expanded', 'true');
             $search.val('');
             filterItems('');
-            $search.trigger('focus');
             var active = 0;
             visibleItems().each(function (idx) {
                 if ($(this).find('.client-filter-option').hasClass('is-active')) {
@@ -155,17 +154,16 @@
                 }
             });
             setFocusIndex(active);
+            window.setTimeout(function () {
+                $search.trigger('focus');
+            }, 0);
         }
 
         function close() {
-            $menu.prop('hidden', true);
-            $root.attr('data-open', '0');
+            $root.removeClass('is-open');
+            $menu.attr('hidden', 'hidden');
             $trigger.attr('aria-expanded', 'false');
             $options.removeClass('is-focus');
-        }
-
-        function isOpen() {
-            return $root.attr('data-open') === '1';
         }
 
         function filterItems(q) {
@@ -218,10 +216,11 @@
             }
         });
 
-        $(document).on('click.clientFilter', function (e) {
-            if (!$root.is(e.target) && $root.has(e.target).length === 0) {
-                close();
+        $(document).on('mousedown.clientFilter', function (e) {
+            if (!isOpen() || !rootEl || rootEl.contains(e.target)) {
+                return;
             }
+            close();
         });
     }
 

@@ -64,7 +64,7 @@ function url($path = '')
 
 function asset($path)
 {
-    return url('assets/' . ltrim((string) $path, '/'));
+    return url('assets/' . ltrim((string) $path, '/')) . '?v=' . rawurlencode(APP_VERSION);
 }
 
 function e($str)
