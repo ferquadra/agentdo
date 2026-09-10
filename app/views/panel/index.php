@@ -118,7 +118,7 @@ $abiertosCount = isset($counts['abiertos']) ? (int) $counts['abiertos'] : 0;
         </div>
 
         <?php
-        $ledList = !empty($ledMessages) ? $ledMessages : array('TODAVÍA NO HAY PROYECTOS');
+        $ledList = !empty($ledMessages) ? $ledMessages : array('SIN VENCIMIENTOS PRÓXIMOS');
         $ledJson = json_encode($ledList, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         if ($ledJson === false) {
             $ledJson = '["AGENTDO"]';

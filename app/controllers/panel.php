@@ -60,6 +60,9 @@ class PanelController extends Controller
                 continue;
             }
             $fechaLimite = !empty($p['fecha_limite']) ? (string) $p['fecha_limite'] : '';
+            if ($fechaLimite === '' || date_is_past($fechaLimite)) {
+                continue;
+            }
             $abiertos[] = array(
                 'cliente' => $cliente,
                 'fecha_limite' => $fechaLimite,
@@ -67,34 +70,19 @@ class PanelController extends Controller
         }
 
         usort($abiertos, function ($a, $b) {
-            $fa = $a['fecha_limite'];
-            $fb = $b['fecha_limite'];
-            if ($fa === '' && $fb === '') {
+            if ($a['fecha_limite'] === $b['fecha_limite']) {
                 return strcmp($a['cliente'], $b['cliente']);
             }
-            if ($fa === '') {
-                return 1;
-            }
-            if ($fb === '') {
-                return -1;
-            }
-            if ($fa === $fb) {
-                return strcmp($a['cliente'], $b['cliente']);
-            }
-            return strcmp($fa, $fb);
+            return strcmp($a['fecha_limite'], $b['fecha_limite']);
         });
 
         $messages = array();
         foreach ($abiertos as $item) {
-            if ($item['fecha_limite'] !== '') {
-                $messages[] = format_date($item['fecha_limite']) . ' · ' . $item['cliente'];
-            } else {
-                $messages[] = $item['cliente'];
-            }
+            $messages[] = format_date($item['fecha_limite']) . ' · ' . $item['cliente'];
         }
 
         if (count($messages) === 0) {
-            $messages[] = 'TODAVÍA NO HAY PROYECTOS';
+            $messages[] = 'SIN VENCIMIENTOS PRÓXIMOS';
         }
 
         return $messages;
