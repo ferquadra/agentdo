@@ -25,6 +25,8 @@ class PanelController extends Controller
             $totalAbiertos += (int) $c['proyectos_abiertos'];
         }
 
+        $ledMessages = $this->buildLedMessages($proyectos);
+
         $this->view('panel/index', array(
             'title' => $empresa . ' · ' . APP_NAME,
             'page' => 'panel',
@@ -38,7 +40,61 @@ class PanelController extends Controller
             'mostrarCerrados' => $mostrarCerrados,
             'filtroCliente' => $filtroCliente,
             'canWrite' => Auth::canWrite(),
+            'ledMessages' => $ledMessages,
         ));
+    }
+
+    private function buildLedMessages($proyectos)
+    {
+        $abiertos = array();
+        foreach ($proyectos as $p) {
+            $isCerrado = isset($p['estado']) && $p['estado'] === 'cerrado';
+            if ($isCerrado) {
+                continue;
+            }
+            $titulo = isset($p['titulo']) ? (string) $p['titulo'] : '';
+            if ($titulo === '') {
+                continue;
+            }
+            $fechaLimite = !empty($p['fecha_limite']) ? (string) $p['fecha_limite'] : '';
+            $abiertos[] = array(
+                'titulo' => $titulo,
+                'fecha_limite' => $fechaLimite,
+            );
+        }
+
+        usort($abiertos, function ($a, $b) {
+            $fa = $a['fecha_limite'];
+            $fb = $b['fecha_limite'];
+            if ($fa === '' && $fb === '') {
+                return strcmp($a['titulo'], $b['titulo']);
+            }
+            if ($fa === '') {
+                return 1;
+            }
+            if ($fb === '') {
+                return -1;
+            }
+            if ($fa === $fb) {
+                return strcmp($a['titulo'], $b['titulo']);
+            }
+            return strcmp($fa, $fb);
+        });
+
+        $messages = array();
+        foreach ($abiertos as $item) {
+            if ($item['fecha_limite'] !== '') {
+                $messages[] = format_date($item['fecha_limite']) . ' · ' . $item['titulo'];
+            } else {
+                $messages[] = $item['titulo'];
+            }
+        }
+
+        if (count($messages) === 0) {
+            $messages[] = 'TODAVÍA NO HAY PROYECTOS';
+        }
+
+        return $messages;
     }
 
     public function workspace(Request $request, $params = array())

@@ -64,7 +64,16 @@ function url($path = '')
 
 function asset($path)
 {
-    return url('assets/' . ltrim((string) $path, '/')) . '?v=' . rawurlencode(APP_VERSION);
+    $rel = ltrim((string) $path, '/');
+    $ver = APP_VERSION;
+    $file = ROOT_PATH . '/assets/' . $rel;
+    if (is_file($file)) {
+        $mtime = filemtime($file);
+        if ($mtime !== false) {
+            $ver .= '.' . $mtime;
+        }
+    }
+    return url('assets/' . $rel) . '?v=' . rawurlencode($ver);
 }
 
 function e($str)

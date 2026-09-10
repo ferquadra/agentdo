@@ -117,6 +117,22 @@ $abiertosCount = isset($counts['abiertos']) ? (int) $counts['abiertos'] : 0;
             </div>
         </div>
 
+        <?php
+        $ledList = !empty($ledMessages) ? $ledMessages : array('TODAVÍA NO HAY PROYECTOS');
+        $ledJson = json_encode($ledList, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if ($ledJson === false) {
+            $ledJson = '["AGENTDO"]';
+        }
+        $ledAria = implode(' · ', $ledList);
+        ?>
+        <div
+            class="js-led-marquee"
+            data-messages="<?php echo e($ledJson); ?>"
+            data-color="#f54e00"
+        >
+            <p class="visually-hidden"><?php echo e($ledAria); ?></p>
+        </div>
+
         <?php if (count($proyectos) === 0) : ?>
             <div class="app-card app-card-wide">
                 <?php if (!empty($filtroCliente) && $abiertosCount === 0 && $cerradosCount > 0 && empty($mostrarCerrados)) : ?>

@@ -641,6 +641,54 @@ a.admin-code:active {
     overflow: visible;
 }
 
+/* LED marquee (panel) */
+
+.led-board {
+    --led-color: var(--accent);
+    width: 100%;
+    height: 72px;
+    margin: 0;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+.led-board.is-ready {
+    opacity: 1;
+}
+
+.led-bezel {
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.led-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 0;
+    background: #050505;
+    box-shadow: none;
+}
+
+@media (max-width: 575.98px) {
+    .led-board {
+        height: 52px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .led-board {
+        transition: none;
+    }
+}
+
 .client-filter {
     position: relative;
     z-index: 30;
