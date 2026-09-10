@@ -5,10 +5,11 @@ class Cliente
     {
         $db = Empresa::open($empresa);
         $st = $db->query(
-            'SELECT c.codigo, c.nombre, c.created_at,
-                    (SELECT COUNT(*) FROM proyectos p WHERE p.cliente = c.codigo) AS proyectos
+            "SELECT c.codigo, c.nombre, c.operador, c.created_at,
+                    (SELECT COUNT(*) FROM proyectos p WHERE p.cliente = c.codigo) AS proyectos,
+                    (SELECT COUNT(*) FROM proyectos p WHERE p.cliente = c.codigo AND IFNULL(p.estado, 'abierto') = 'abierto') AS proyectos_abiertos
              FROM clientes c
-             ORDER BY ' . ($orderBy === 'nombre' ? 'c.nombre ASC' : 'c.created_at DESC')
+             ORDER BY " . ($orderBy === 'nombre' ? 'c.nombre ASC' : 'c.created_at DESC')
         );
         $rows = $st->fetchAll();
         $db = null;
@@ -19,7 +20,7 @@ class Cliente
     {
         Storage::assertCode($codigo);
         $db = Empresa::open($empresa);
-        $st = $db->prepare('SELECT codigo, nombre, created_at FROM clientes WHERE codigo = :c');
+        $st = $db->prepare('SELECT codigo, nombre, operador, created_at FROM clientes WHERE codigo = :c');
         $st->bindValue(':c', $codigo, PDO::PARAM_STR);
         $st->execute();
         $row = $st->fetch();
@@ -27,7 +28,7 @@ class Cliente
         return $row !== false ? $row : null;
     }
 
-    public static function create($empresa, $codigo, $nombre)
+    public static function create($empresa, $codigo, $nombre, $operador = '')
     {
         Storage::assertCode($codigo);
         $nombre = trim($nombre);
@@ -37,11 +38,20 @@ class Cliente
         if (self::find($empresa, $codigo) !== null) {
             return false;
         }
+        $operador = strtolower(trim((string) $operador));
+        if ($operador === '' || !Storage::isCode($operador)) {
+            $operador = null;
+        }
         $now = gmdate('c');
         $db = Empresa::open($empresa);
-        $st = $db->prepare('INSERT INTO clientes (codigo, nombre, created_at) VALUES (:c, :n, :t)');
+        $st = $db->prepare('INSERT INTO clientes (codigo, nombre, operador, created_at) VALUES (:c, :n, :op, :t)');
         $st->bindValue(':c', $codigo, PDO::PARAM_STR);
         $st->bindValue(':n', $nombre, PDO::PARAM_STR);
+        if ($operador === null) {
+            $st->bindValue(':op', null, PDO::PARAM_NULL);
+        } else {
+            $st->bindValue(':op', $operador, PDO::PARAM_STR);
+        }
         $st->bindValue(':t', $now, PDO::PARAM_STR);
         $st->execute();
         $db = null;

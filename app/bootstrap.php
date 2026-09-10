@@ -5,7 +5,7 @@ ini_set('display_errors', '1');
 define('ROOT_PATH', str_replace('\\', '/', dirname(dirname(__FILE__))));
 define('APP_PATH', ROOT_PATH . '/app');
 define('APP_NAME', 'AgentDo');
-define('APP_VERSION', '1.0');
+define('APP_VERSION', '1.2');
 define('LOGIN_FAIL_MAX', 10);
 
 if (session_status() === PHP_SESSION_NONE) {
@@ -81,6 +81,26 @@ function format_dt($iso)
     } catch (Exception $e) {
         return (string) $iso;
     }
+}
+
+function format_date($ymd)
+{
+    if ($ymd === null || $ymd === '') {
+        return '';
+    }
+    $dt = DateTime::createFromFormat('Y-m-d', (string) $ymd);
+    if ($dt === false || $dt->format('Y-m-d') !== (string) $ymd) {
+        return (string) $ymd;
+    }
+    return $dt->format('d M Y');
+}
+
+function date_is_past($ymd)
+{
+    if ($ymd === null || $ymd === '') {
+        return false;
+    }
+    return (string) $ymd < date('Y-m-d');
 }
 
 function share_url($hash, $archivo = '')

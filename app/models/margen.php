@@ -7,7 +7,7 @@ class Margen
         Storage::assertCode($proyecto);
         $db = Empresa::open($empresa);
         $st = $db->prepare(
-            'SELECT id, cliente, proyecto, tipo, cuerpo, archivo, created_at
+            'SELECT id, cliente, proyecto, tipo, cuerpo, archivo, operador, created_at
              FROM margen
              WHERE cliente = :cl AND proyecto = :pr
              ORDER BY created_at DESC'
@@ -34,16 +34,16 @@ class Margen
         return $row !== false ? $row : null;
     }
 
-    public static function addNota($empresa, $cliente, $proyecto, $texto)
+    public static function addNota($empresa, $cliente, $proyecto, $texto, $operador = '')
     {
         $texto = trim($texto);
         if ($texto === '' || strlen($texto) > 4000) {
             throw new InvalidArgumentException('nota_invalida');
         }
-        return self::insert($empresa, $cliente, $proyecto, 'nota', $texto, '');
+        return self::insert($empresa, $cliente, $proyecto, 'nota', $texto, '', $operador);
     }
 
-    public static function addEnlace($empresa, $cliente, $proyecto, $url)
+    public static function addEnlace($empresa, $cliente, $proyecto, $url, $operador = '')
     {
         $url = trim($url);
         if ($url === '' || strlen($url) > 2000) {
@@ -52,10 +52,10 @@ class Margen
         if (!preg_match('#^https?://#i', $url)) {
             throw new InvalidArgumentException('enlace_invalido');
         }
-        return self::insert($empresa, $cliente, $proyecto, 'enlace', $url, '');
+        return self::insert($empresa, $cliente, $proyecto, 'enlace', $url, '', $operador);
     }
 
-    public static function addArchivo($empresa, $cliente, $proyecto, $tmpPath, $originalName)
+    public static function addArchivo($empresa, $cliente, $proyecto, $tmpPath, $originalName, $operador = '')
     {
         $filename = Storage::normalizeFilename($originalName);
         $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
@@ -78,15 +78,17 @@ class Margen
             throw new RuntimeException('upload_move');
         }
 
+        $op = Proyecto::normalizeOperador($operador);
         $meta = array(
             'id' => $hash,
             'tipo' => 'archivo',
             'archivo' => $filename,
+            'operador' => $op,
             'created_at' => gmdate('c'),
         );
         file_put_contents($dir . '/meta.json', json_encode($meta));
 
-        self::insertRow($empresa, $hash, $cliente, $proyecto, 'archivo', $filename, $filename);
+        self::insertRow($empresa, $hash, $cliente, $proyecto, 'archivo', $filename, $filename, $op);
         Share::register($hash, $empresa, $cliente, $proyecto, $filename);
         Proyecto::touch($empresa, $cliente, $proyecto);
         return $hash;
@@ -113,20 +115,21 @@ class Margen
         return true;
     }
 
-    private static function insert($empresa, $cliente, $proyecto, $tipo, $cuerpo, $archivo)
+    private static function insert($empresa, $cliente, $proyecto, $tipo, $cuerpo, $archivo, $operador = '')
     {
         $hash = Storage::generateHash(40);
-        self::insertRow($empresa, $hash, $cliente, $proyecto, $tipo, $cuerpo, $archivo);
+        self::insertRow($empresa, $hash, $cliente, $proyecto, $tipo, $cuerpo, $archivo, $operador);
         Proyecto::touch($empresa, $cliente, $proyecto);
         return $hash;
     }
 
-    private static function insertRow($empresa, $id, $cliente, $proyecto, $tipo, $cuerpo, $archivo)
+    private static function insertRow($empresa, $id, $cliente, $proyecto, $tipo, $cuerpo, $archivo, $operador = '')
     {
+        $operador = Proyecto::normalizeOperador($operador);
         $db = Empresa::open($empresa);
         $st = $db->prepare(
-            'INSERT INTO margen (id, cliente, proyecto, tipo, cuerpo, archivo, created_at)
-             VALUES (:i, :cl, :pr, :t, :cu, :a, :c)'
+            'INSERT INTO margen (id, cliente, proyecto, tipo, cuerpo, archivo, operador, created_at)
+             VALUES (:i, :cl, :pr, :t, :cu, :a, :op, :c)'
         );
         $st->bindValue(':i', $id, PDO::PARAM_STR);
         $st->bindValue(':cl', $cliente, PDO::PARAM_STR);
@@ -134,6 +137,11 @@ class Margen
         $st->bindValue(':t', $tipo, PDO::PARAM_STR);
         $st->bindValue(':cu', $cuerpo, PDO::PARAM_STR);
         $st->bindValue(':a', $archivo, PDO::PARAM_STR);
+        if ($operador === null) {
+            $st->bindValue(':op', null, PDO::PARAM_NULL);
+        } else {
+            $st->bindValue(':op', $operador, PDO::PARAM_STR);
+        }
         $st->bindValue(':c', gmdate('c'), PDO::PARAM_STR);
         $st->execute();
         $db = null;

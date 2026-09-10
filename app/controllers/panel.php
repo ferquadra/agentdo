@@ -14,10 +14,15 @@ class PanelController extends Controller
         if (Storage::isCode($filtroCodigo)) {
             $filtroCliente = Cliente::find($empresa, $filtroCodigo);
         }
-        $proyectos = Proyecto::listAll($empresa, $filtroCliente ? $filtroCliente['codigo'] : '');
+        $mostrarCerrados = $request->input('cerrados') === '1';
+        $filtroCodigoSafe = $filtroCliente ? $filtroCliente['codigo'] : '';
+        $proyectos = Proyecto::listAll($empresa, $filtroCodigoSafe, $mostrarCerrados);
+        $counts = Proyecto::counts($empresa, $filtroCodigoSafe);
         $totalProyectos = 0;
+        $totalAbiertos = 0;
         foreach ($clientes as $c) {
             $totalProyectos += (int) $c['proyectos'];
+            $totalAbiertos += (int) $c['proyectos_abiertos'];
         }
 
         $this->view('panel/index', array(
@@ -28,6 +33,9 @@ class PanelController extends Controller
             'clientes' => $clientes,
             'clientesCount' => $clientesCount,
             'totalProyectos' => $totalProyectos,
+            'totalAbiertos' => $totalAbiertos,
+            'counts' => $counts,
+            'mostrarCerrados' => $mostrarCerrados,
             'filtroCliente' => $filtroCliente,
             'canWrite' => Auth::canWrite(),
         ));
@@ -118,6 +126,56 @@ class PanelController extends Controller
         ));
     }
 
+    public function saveProps(Request $request, $params = array())
+    {
+        $user = Auth::requireLogin();
+        if (!Auth::canWrite()) {
+            $this->json(array('ok' => false, 'error' => 'readonly'), 403);
+        }
+        if (!$this->requireCsrf($request)) {
+            $this->json(array('ok' => false, 'error' => 'csrf'), 400);
+        }
+
+        $empresa = $user['empresa'];
+        $cliente = isset($params['cliente']) ? $params['cliente'] : '';
+        $proyecto = isset($params['proyecto']) ? $params['proyecto'] : '';
+        if (!Storage::isCode($cliente) || !Storage::isCode($proyecto)) {
+            $this->json(array('ok' => false, 'error' => 'not_found'), 404);
+        }
+        if (Proyecto::find($empresa, $cliente, $proyecto) === null) {
+            $this->json(array('ok' => false, 'error' => 'not_found'), 404);
+        }
+
+        $estado = $request->input('estado');
+        $aprobacion = $request->input('aprobacion');
+        $fechaLimite = $request->input('fecha_limite');
+
+        try {
+            $meta = Lock::run($empresa, function () use ($empresa, $cliente, $proyecto, $estado, $fechaLimite, $aprobacion) {
+                return Proyecto::updateMeta($empresa, $cliente, $proyecto, $estado, $fechaLimite, $aprobacion);
+            });
+        } catch (InvalidArgumentException $e) {
+            $this->json(array('ok' => false, 'error' => $e->getMessage()), 400);
+        } catch (Exception $e) {
+            $this->json(array('ok' => false, 'error' => 'save_failed'), 500);
+        }
+
+        if ($meta === null) {
+            $this->json(array('ok' => false, 'error' => 'not_found'), 404);
+        }
+
+        $this->json(array(
+            'ok' => true,
+            'estado' => $meta['estado'],
+            'fecha_limite' => $meta['fecha_limite'],
+            'aprobacion' => $meta['aprobacion'],
+            'fecha_label' => $meta['fecha_limite'] ? format_date($meta['fecha_limite']) : '',
+            'fecha_vencida' => date_is_past($meta['fecha_limite']),
+            'saved_at' => $meta['updated_at'],
+            'saved_label' => self::formatLocal($meta['updated_at']),
+        ));
+    }
+
     public function addMargen(Request $request, $params = array())
     {
         $user = Auth::requireWrite();
@@ -137,11 +195,11 @@ class PanelController extends Controller
 
         $tipo = $request->input('tipo');
         try {
-            Lock::run($empresa, function () use ($empresa, $cliente, $proyecto, $tipo, $request) {
+            Lock::run($empresa, function () use ($empresa, $cliente, $proyecto, $tipo, $request, $user) {
                 if ($tipo === 'nota') {
-                    Margen::addNota($empresa, $cliente, $proyecto, $request->input('cuerpo'));
+                    Margen::addNota($empresa, $cliente, $proyecto, $request->input('cuerpo'), $user['usuario']);
                 } elseif ($tipo === 'enlace') {
-                    Margen::addEnlace($empresa, $cliente, $proyecto, $request->input('cuerpo'));
+                    Margen::addEnlace($empresa, $cliente, $proyecto, $request->input('cuerpo'), $user['usuario']);
                 } else {
                     throw new InvalidArgumentException('tipo_invalido');
                 }
@@ -195,13 +253,14 @@ class PanelController extends Controller
         }
 
         try {
-            $hash = Lock::run($empresa, function () use ($empresa, $cliente, $proyecto, $file) {
+            $hash = Lock::run($empresa, function () use ($empresa, $cliente, $proyecto, $file, $user) {
                 return Margen::addArchivo(
                     $empresa,
                     $cliente,
                     $proyecto,
                     $file['tmp_name'],
-                    $file['name']
+                    $file['name'],
+                    $user['usuario']
                 );
             });
         } catch (InvalidArgumentException $e) {

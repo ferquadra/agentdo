@@ -6,10 +6,12 @@ class ProyectoController extends Controller
         $user = Auth::requireWrite();
         $empresa = $user['empresa'];
         $clientes = Cliente::listAll($empresa, 'nombre');
+        $codesByCliente = Proyecto::codesByCliente($empresa);
         $error = '';
         $cliente = $request->input('cliente');
-        $codigo = '';
         $titulo = '';
+        $fechaLimite = '';
+        $aprobacion = 'aprobado';
 
         if (count($clientes) === 0) {
             $this->view('panel/proyecto_nuevo', array(
@@ -17,10 +19,12 @@ class ProyectoController extends Controller
                 'page' => 'panel',
                 'user' => $user,
                 'clientes' => $clientes,
+                'codesByCliente' => $codesByCliente,
                 'error' => 'Primero creá un cliente.',
                 'cliente' => '',
-                'codigo' => '',
                 'titulo' => '',
+                'fechaLimite' => '',
+                'aprobacion' => 'aprobado',
                 'needsCliente' => true,
             ));
             return;
@@ -31,27 +35,35 @@ class ProyectoController extends Controller
                 $error = 'La sesión del formulario expiró. Probá de nuevo.';
             } else {
                 $cliente = strtolower($request->input('cliente'));
-                $codigo = strtolower($request->input('codigo'));
                 $titulo = $request->input('titulo');
+                $fechaLimite = $request->input('fecha_limite');
+                $aprobacion = $request->input('aprobacion') === 'requiere' ? 'requiere' : 'aprobado';
+                $codigo = Proyecto::codigoFromTitulo($titulo);
                 if (!Storage::isCode($cliente)) {
                     $error = 'Cliente inválido.';
-                } elseif (!Storage::isCode($codigo)) {
-                    $error = 'Código de proyecto inválido. Solo a-z y 0-9, entre 3 y 32.';
                 } elseif (trim($titulo) === '' || strlen(trim($titulo)) > 160) {
-                    $error = 'Título inválido (1–160 caracteres).';
+                    $error = 'Nombre inválido (1–160 caracteres).';
+                } elseif (!Storage::isCode($codigo)) {
+                    $error = 'El nombre tiene que dejar al menos 3 letras o números para el código.';
                 } else {
                     try {
-                        $ok = Lock::run($empresa, function () use ($empresa, $cliente, $codigo, $titulo) {
-                            return Proyecto::create($empresa, $cliente, $codigo, $titulo);
+                        $ok = Lock::run($empresa, function () use ($empresa, $cliente, $codigo, $titulo, $user, $aprobacion, $fechaLimite) {
+                            return Proyecto::create($empresa, $cliente, $codigo, $titulo, array(
+                                'operador' => $user['usuario'],
+                                'aprobacion' => $aprobacion,
+                                'fecha_limite' => $fechaLimite,
+                            ));
                         });
                         if (!$ok) {
-                            $error = 'Ese código de proyecto ya existe para el cliente.';
+                            $error = 'Ese código ya existe para este cliente. Cambiá el nombre, por ejemplo agregá un 2 al final.';
                         } else {
                             $this->redirect('panel/' . $cliente . '/' . $codigo);
                         }
                     } catch (InvalidArgumentException $e) {
                         if ($e->getMessage() === 'cliente_inexistente') {
                             $error = 'Ese cliente no existe.';
+                        } elseif ($e->getMessage() === 'fecha_invalida') {
+                            $error = 'Fecha límite inválida.';
                         } else {
                             $error = 'Datos inválidos.';
                         }
@@ -67,10 +79,12 @@ class ProyectoController extends Controller
             'page' => 'panel',
             'user' => $user,
             'clientes' => $clientes,
+            'codesByCliente' => $codesByCliente,
             'error' => $error,
             'cliente' => $cliente,
-            'codigo' => $codigo,
             'titulo' => $titulo,
+            'fechaLimite' => $fechaLimite,
+            'aprobacion' => $aprobacion,
             'needsCliente' => false,
         ));
     }

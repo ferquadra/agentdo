@@ -1,8 +1,14 @@
+<?php
+$codesJson = json_encode(isset($codesByCliente) ? $codesByCliente : array());
+if ($codesJson === false) {
+    $codesJson = '{}';
+}
+?>
 <section class="section-narrow">
     <div class="container-xl">
         <p class="mono-label">nuevo proyecto</p>
         <h1 class="page-title">Crear proyecto</h1>
-        <p class="muted">Asociá el proyecto a un cliente existente.</p>
+        <p class="muted">El código se arma solo con las letras y números del nombre. Tiene que ser único por cliente.</p>
 
         <?php if (!empty($error)) : ?>
             <div class="alert alert-app" role="alert"><?php echo e($error); ?></div>
@@ -14,11 +20,11 @@
                 <a class="btn btn-accent" href="<?php echo e(url('panel/clientes/nuevo')); ?>">+ Crear cliente</a>
             </div>
         <?php else : ?>
-            <form class="app-card app-form" method="post" action="<?php echo e(url('panel/proyectos/nuevo')); ?>" autocomplete="off">
+            <form class="app-card app-form js-proyecto-nuevo" method="post" action="<?php echo e(url('panel/proyectos/nuevo')); ?>" autocomplete="off" data-codes="<?php echo e($codesJson); ?>">
                 <?php echo Csrf::field(); ?>
                 <div class="mb-3">
                     <label class="form-label" for="cliente">Cliente</label>
-                    <select class="form-select" id="cliente" name="cliente" required>
+                    <select class="form-select js-proyecto-cliente" id="cliente" name="cliente" required>
                         <?php foreach ($clientes as $c) : ?>
                             <option value="<?php echo e($c['codigo']); ?>"<?php echo $cliente === $c['codigo'] ? ' selected' : ''; ?>>
                                 <?php echo e($c['nombre']); ?> (<?php echo e($c['codigo']); ?>)
@@ -27,12 +33,18 @@
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label" for="codigo">Código de proyecto</label>
-                    <input class="form-control" type="text" id="codigo" name="codigo" value="<?php echo e($codigo); ?>" required minlength="3" maxlength="32" pattern="[a-z0-9]+" autocapitalize="off" spellcheck="false" placeholder="portal">
+                    <label class="form-label" for="titulo">Nombre</label>
+                    <input class="form-control js-proyecto-titulo" type="text" id="titulo" name="titulo" value="<?php echo e($titulo); ?>" required maxlength="160" placeholder="Portal web">
+                    <p class="proyecto-code-hint mono js-proyecto-code-hint" aria-live="polite">código · —</p>
                 </div>
-                <div class="mb-4">
-                    <label class="form-label" for="titulo">Título</label>
-                    <input class="form-control" type="text" id="titulo" name="titulo" value="<?php echo e($titulo); ?>" required maxlength="160" placeholder="Portal web">
+                <div class="mb-3">
+                    <label class="form-label" for="fecha_limite">Fecha límite</label>
+                    <input class="form-control" type="date" id="fecha_limite" name="fecha_limite" value="<?php echo e(isset($fechaLimite) ? $fechaLimite : ''); ?>">
+                    <p class="muted form-hint mb-0">Opcional. Sirve para ordenar prioridades en el panel.</p>
+                </div>
+                <div class="mb-4 form-check">
+                    <input class="form-check-input" type="checkbox" id="aprobacion" name="aprobacion" value="requiere"<?php echo (!empty($aprobacion) && $aprobacion === 'requiere') ? ' checked' : ''; ?>>
+                    <label class="form-check-label" for="aprobacion">Requiere aprobación</label>
                 </div>
                 <div class="d-flex gap-2">
                     <?php
@@ -42,7 +54,7 @@
                     }
                     ?>
                     <a class="btn btn-outline-ghost" href="<?php echo e($cancelUrl); ?>">Cancelar</a>
-                    <button type="submit" class="btn btn-accent flex-grow-1">Crear proyecto</button>
+                    <button type="submit" class="btn btn-accent flex-grow-1 js-proyecto-submit">Crear proyecto</button>
                 </div>
             </form>
         <?php endif; ?>

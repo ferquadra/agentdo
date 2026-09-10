@@ -9,7 +9,7 @@ Base local: `http://localhost/agentdo/` (XAMPP). Tenant de prueba usado en desar
 - **Empresa** — tenant raíz. Código `[a-z0-9]`, 3–32. Usuario reservado `admin`.
 - **Operador** — pertenece a una empresa. Usuario `[a-z0-9]`, 3–32. Permiso `rw` o `ro` (v1 a nivel empresa).
 - **Cliente = instancia** — carpeta en disco. Código `[a-z0-9]`, 3–32.
-- **Proyecto** — vive dentro del cliente. Código `[a-z0-9]`, 3–32.
+- **Proyecto** — vive dentro del cliente. Código `[a-z0-9]`, 3–32 (se genera solo a partir del nombre). Estado `abierto`/`cerrado`, fecha límite opcional (`YYYY-MM-DD`) y tag `aprobacion` (`aprobado`/`requiere`).
 - **Diario** — `diario.txt` en disco (texto plano, autoguardado).
 - **Anotación (margen)** — texto, enlace o adjunto.
 
@@ -60,14 +60,14 @@ agentdo/
       auth.php              # /ingresar, wizard /crear-empresa (3 pasos + kits), /salir
       panel.php             # hub /panel + workspace diario/margen
       cliente.php           # CRUD clientes (nombre editable; código inmutable)
-      proyecto.php          # alta de proyecto
+      proyecto.php          # alta de proyecto (nombre → código; firma operador)
       empresa.php           # admin de empresa (gate passhash admin + operadores)
       share.php             # GET /a/{hash}.{ext} enlace público de adjunto
     models/
       empresa.php           # registry global + empresa.sqlite (meta, lock login, schema)
       operador.php          # find/list/create/update/rotatePasshash/delete
       cliente.php           # listado, alta, editar nombre, borrar (solo SQLite)
-      proyecto.php          # listado, alta, updated_at
+      proyecto.php          # listado, alta, estado/fecha/aprobacion, updated_at
       margen.php            # notas/enlaces/adjuntos (metadata SQLite)
       share.php             # índice público webfiles/_shares.sqlite
     services/
@@ -167,11 +167,13 @@ Wizard crear empresa (sesión `$_SESSION['wizard']`):
 
 Panel:
 
-- `/panel` — listado de proyectos (última actualización) + crear cliente/proyecto. Filtro por cliente (`?cliente={codigo}`): buscador con nombre, código y cantidad. Clic en un cliente desde `/panel/clientes` abre este listado ya filtrado.
+- `/panel` — listado de **proyectos abiertos**. Orden: fecha límite (más próxima primero; sin fecha al final) y después `updated_at`. Los cerrados no se listan salvo `?cerrados=1` (van abajo de todo). Filtro por cliente (`?cliente={codigo}`): buscador con nombre, código y cantidad de abiertos. Clic en un cliente desde `/panel/clientes` abre este listado ya filtrado. Tags visibles: cerrado, requiere aprobación, fecha límite (si venció, resaltada).
 - `/panel/clientes` — listado por fecha de alta; código/nombre/cantidad llevan a los proyectos de ese cliente; editar solo nombre; borrar con confirmación; **Crear proyecto** preselecciona el cliente.
-- `/panel/{cliente}/{proyecto}` — workspace: margen izquierda (nota, enlace, dropzone) + diario derecha. Autosave debounce 1.2s. Chips Escribiendo / Guardando / Guardado.
+- `/panel/{cliente}/{proyecto}` — workspace: margen izquierda (nota, enlace, dropzone) + diario derecha. Autosave debounce 1.2s. Chips Escribiendo / Guardando / Guardado. Barra del diario: Abierto/Cerrado, fecha límite (sin hora), Requiere aprobación (amarillo) / Aprobado (verde). `POST /panel/{cliente}/{proyecto}/props` guarda esas tres. Un agente no debe tocar un proyecto con `aprobacion=requiere` hasta que un humano lo apruebe; sí puede crear proyectos ya marcados como `requiere`.
 - Adjuntos: carpeta `margen/{hash}/`. Enlace público `GET /a/{hash}.{ext}` (ej. `/a/abc….pdf`). El punto de la extensión es literal: el router usa `preg_quote` en los trozos fijos; sin eso `{hash}.{ext}` no matchea.
-- JSON público del proyecto: botón **JSON** al lado del título en el workspace. Enlace `GET /j/{hash}.json` (hash 40 `[a-z0-9]`, sin login). Índice en `webfiles/_shares.sqlite` tabla `json_shares`. El documento se arma en vivo (diario + margen + URLs de adjuntos). Borrar cliente también borra esas filas.
+- JSON público del proyecto: botón **JSON** al lado del título en el workspace. Enlace `GET /j/{hash}.json` (hash 40 `[a-z0-9]`, sin login). Índice en `webfiles/_shares.sqlite` tabla `json_shares`. El documento se arma en vivo (diario + margen + URLs de adjuntos + `estado`, `fecha_limite`, `aprobacion` y `operador`). Borrar cliente también borra esas filas.
+- Alta de proyecto: solo se pide el **nombre**. El código se deriva de letras y números del nombre (minúsculas, sin espacios ni acentos, 3–32). Único por cliente; si choca, hay que cambiar el nombre (p. ej. un `2` al final).
+- Firma de operador: todo lo que crea un operador (`cliente`, `proyecto`, ítems de `margen`) guarda `operador` (usuario) y viaja en el JSON. Los registros viejos quedan `null`.
 
 Administrar empresa (`/panel/empresa`):
 
@@ -233,7 +235,7 @@ curl -s -X POST "$BASE/api/v1/auth" \
 
 ## Notas para retomar
 
-- **Hecho:** portada, login, wizard de empresa, panel, workspace (diario + margen + adjuntos públicos), CRUD clientes, admin de empresa con gate de passhash admin y CRUD de operadores (alta/editar/borrar/rotar).
+- **Hecho:** portada, login, wizard de empresa, panel, workspace (diario + margen + adjuntos públicos), CRUD clientes, admin de empresa con gate de passhash admin y CRUD de operadores (alta/editar/borrar/rotar), propiedades de proyecto (abierto/cerrado, fecha límite, aprobación), código de proyecto desde el nombre, firma de operador en altas y JSON.
 - **Pendiente más claro:** API JSON v1 para agentes (auth Bearer, mismas entidades). Después: más pulido de `ro`, desbloqueo de empresa sin tocar SQLite a mano, y lo que pida el uso real.
 - Al añadir clase: registrarla en el mapa de `bootstrap.php` y la ruta **estática** antes de las paramétricas en `index.php`.
 - Kits de rotación/alta viven en `$_SESSION['rotate_flash']` hasta que el usuario confirma. No borrar ese flash al pintar la pantalla (hace falta para descargar el kit).

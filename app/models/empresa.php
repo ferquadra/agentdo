@@ -53,6 +53,7 @@ class Empresa
             'CREATE TABLE IF NOT EXISTS clientes (
                 codigo TEXT PRIMARY KEY,
                 nombre TEXT NOT NULL,
+                operador TEXT,
                 created_at TEXT NOT NULL
             )'
         );
@@ -61,6 +62,10 @@ class Empresa
                 cliente TEXT NOT NULL,
                 codigo TEXT NOT NULL,
                 titulo TEXT NOT NULL,
+                estado TEXT NOT NULL DEFAULT \'abierto\',
+                fecha_limite TEXT,
+                aprobacion TEXT NOT NULL DEFAULT \'aprobado\',
+                operador TEXT,
                 updated_at TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 PRIMARY KEY (cliente, codigo)
@@ -74,10 +79,50 @@ class Empresa
                 tipo TEXT NOT NULL,
                 cuerpo TEXT,
                 archivo TEXT,
+                operador TEXT,
                 created_at TEXT NOT NULL
             )'
         );
+        self::migrateTenant($db);
         return $db;
+    }
+
+    private static function tableColumns($db, $table)
+    {
+        $cols = array();
+        $st = $db->query('PRAGMA table_info(' . $table . ')');
+        $rows = $st->fetchAll();
+        foreach ($rows as $row) {
+            $cols[$row['name']] = true;
+        }
+        return $cols;
+    }
+
+    private static function migrateTenant($db)
+    {
+        $proyectos = self::tableColumns($db, 'proyectos');
+        if (empty($proyectos['estado'])) {
+            $db->exec("ALTER TABLE proyectos ADD COLUMN estado TEXT NOT NULL DEFAULT 'abierto'");
+        }
+        if (empty($proyectos['fecha_limite'])) {
+            $db->exec('ALTER TABLE proyectos ADD COLUMN fecha_limite TEXT');
+        }
+        if (empty($proyectos['aprobacion'])) {
+            $db->exec("ALTER TABLE proyectos ADD COLUMN aprobacion TEXT NOT NULL DEFAULT 'aprobado'");
+        }
+        if (empty($proyectos['operador'])) {
+            $db->exec('ALTER TABLE proyectos ADD COLUMN operador TEXT');
+        }
+
+        $clientes = self::tableColumns($db, 'clientes');
+        if (empty($clientes['operador'])) {
+            $db->exec('ALTER TABLE clientes ADD COLUMN operador TEXT');
+        }
+
+        $margen = self::tableColumns($db, 'margen');
+        if (empty($margen['operador'])) {
+            $db->exec('ALTER TABLE margen ADD COLUMN operador TEXT');
+        }
     }
 
     public static function create($codigo)

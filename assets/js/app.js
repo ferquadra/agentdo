@@ -87,6 +87,11 @@
         initClientFilter($clientFilter);
     }
 
+    var $proyectoNuevo = $('.js-proyecto-nuevo');
+    if ($proyectoNuevo.length) {
+        initProyectoNuevo($proyectoNuevo);
+    }
+
     /* Workspace */
     var $ws = $('.workspace');
     if ($ws.length) {
@@ -359,5 +364,333 @@
                 this.value = '';
             }
         });
+
+        initWorkspaceProps($root, csrf, canWrite);
+    }
+
+    function initWorkspaceProps($root, csrf, canWrite) {
+        var propsUrl = $root.attr('data-props-url');
+        if (!propsUrl || !canWrite) {
+            return;
+        }
+
+        var $estado = $root.find('.js-prop-estado');
+        var $aprob = $root.find('.js-prop-aprob');
+        var $dateLabel = $root.find('.js-deadline-label');
+        var $dateWrap = $root.find('.prop-deadline');
+        var $clear = $root.find('.js-deadline-clear');
+        var $clock = $root.find('.js-saved-at');
+        var $glass = $root.find('.js-deadline-glass');
+        var $calGrid = $root.find('.js-cal-grid');
+        var $calTitle = $root.find('.js-cal-title');
+        var $calPicked = $root.find('.js-cal-picked');
+        var saving = false;
+        var pending = false;
+        var calYear = 0;
+        var calMonth = 0;
+        var calDraft = '';
+        var monthsEs = [
+            'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+            'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+        ];
+
+        function pad2(n) {
+            return n < 10 ? '0' + n : String(n);
+        }
+
+        function ymdFromDate(d) {
+            return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+        }
+
+        function parseYmd(ymd) {
+            if (!ymd || !/^\d{4}-\d{2}-\d{2}$/.test(ymd)) {
+                return null;
+            }
+            var p = ymd.split('-');
+            return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        }
+
+        function labelFromYmd(ymd) {
+            var d = parseYmd(ymd);
+            if (!d) {
+                return 'Sin fecha';
+            }
+            var mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return pad2(d.getDate()) + ' ' + mon[d.getMonth()] + ' ' + d.getFullYear();
+        }
+
+        function currentEstado() {
+            return $estado.attr('data-estado') === 'cerrado' ? 'cerrado' : 'abierto';
+        }
+
+        function currentAprob() {
+            return $aprob.attr('data-aprobacion') === 'requiere' ? 'requiere' : 'aprobado';
+        }
+
+        function currentFecha() {
+            return $.trim($dateWrap.attr('data-fecha') || '');
+        }
+
+        function paintEstado(estado) {
+            $estado
+                .attr('data-estado', estado)
+                .attr('aria-pressed', estado === 'abierto' ? 'true' : 'false')
+                .removeClass('is-abierto is-cerrado')
+                .addClass('is-' + estado)
+                .text(estado === 'cerrado' ? 'Cerrado' : 'Abierto');
+        }
+
+        function paintAprob(aprob) {
+            $aprob
+                .attr('data-aprobacion', aprob)
+                .removeClass('is-requiere is-aprobado')
+                .addClass('is-' + aprob)
+                .text(aprob === 'requiere' ? 'Requiere aprobación' : 'Aprobado');
+        }
+
+        function paintFecha(ymd, label, vencida) {
+            $dateWrap.attr('data-fecha', ymd || '');
+            $dateLabel.text(ymd ? (label || labelFromYmd(ymd)) : 'Fecha límite');
+            $dateWrap.toggleClass('has-value', !!ymd);
+            $dateWrap.toggleClass('is-overdue', !!(ymd && vencida && currentEstado() === 'abierto'));
+            $clear.toggleClass('d-none', !ymd);
+        }
+
+        function saveProps() {
+            if (saving) {
+                pending = true;
+                return;
+            }
+            saving = true;
+            pending = false;
+            $.ajax({
+                url: propsUrl,
+                method: 'POST',
+                dataType: 'json',
+                data: {
+                    csrf: csrf,
+                    estado: currentEstado(),
+                    aprobacion: currentAprob(),
+                    fecha_limite: currentFecha()
+                }
+            }).done(function (res) {
+                if (res && res.ok) {
+                    paintEstado(res.estado);
+                    paintAprob(res.aprobacion);
+                    paintFecha(res.fecha_limite || '', res.fecha_label || '', !!res.fecha_vencida);
+                    if (res.saved_label) {
+                        $clock.text(res.saved_label);
+                    }
+                }
+            }).always(function () {
+                saving = false;
+                if (pending) {
+                    saveProps();
+                }
+            });
+        }
+
+        function applyFecha(ymd) {
+            paintFecha(ymd, '', false);
+            saveProps();
+        }
+
+        function renderCal() {
+            var first = new Date(calYear, calMonth, 1);
+            var startPad = (first.getDay() + 6) % 7;
+            var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+            var today = ymdFromDate(new Date());
+            var html = '';
+            var i;
+            var day;
+            var ymd;
+            var cls;
+            $calTitle.text(monthsEs[calMonth] + ' ' + calYear);
+            $calPicked.text(calDraft ? labelFromYmd(calDraft) : 'Sin fecha');
+            for (i = 0; i < startPad; i += 1) {
+                html += '<span></span>';
+            }
+            for (day = 1; day <= daysInMonth; day += 1) {
+                ymd = calYear + '-' + pad2(calMonth + 1) + '-' + pad2(day);
+                cls = 'deadline-cal-day';
+                if (ymd === today) {
+                    cls += ' is-today';
+                }
+                if (ymd === calDraft) {
+                    cls += ' is-selected';
+                }
+                html += '<button type="button" class="' + cls + '" data-ymd="' + ymd + '">' + day + '</button>';
+            }
+            $calGrid.html(html);
+        }
+
+        function openGlass() {
+            var cur = currentFecha();
+            var base = parseYmd(cur) || new Date();
+            calDraft = cur;
+            calYear = base.getFullYear();
+            calMonth = base.getMonth();
+            renderCal();
+            $glass.removeAttr('hidden');
+        }
+
+        function closeGlass() {
+            $glass.attr('hidden', 'hidden');
+        }
+
+        $estado.on('click', function () {
+            paintEstado(currentEstado() === 'abierto' ? 'cerrado' : 'abierto');
+            if (currentEstado() === 'cerrado') {
+                $dateWrap.removeClass('is-overdue');
+            }
+            saveProps();
+        });
+
+        $aprob.on('click', function () {
+            paintAprob(currentAprob() === 'aprobado' ? 'requiere' : 'aprobado');
+            saveProps();
+        });
+
+        $root.find('.js-deadline-open').on('click', function () {
+            openGlass();
+        });
+
+        $root.find('.js-deadline-dismiss').on('click', function () {
+            closeGlass();
+        });
+
+        $root.find('.js-cal-prev').on('click', function () {
+            calMonth -= 1;
+            if (calMonth < 0) {
+                calMonth = 11;
+                calYear -= 1;
+            }
+            renderCal();
+        });
+
+        $root.find('.js-cal-next').on('click', function () {
+            calMonth += 1;
+            if (calMonth > 11) {
+                calMonth = 0;
+                calYear += 1;
+            }
+            renderCal();
+        });
+
+        $calGrid.on('click', '.deadline-cal-day', function () {
+            calDraft = $(this).attr('data-ymd') || '';
+            renderCal();
+        });
+
+        $root.find('.js-deadline-today').on('click', function () {
+            var now = new Date();
+            calDraft = ymdFromDate(now);
+            calYear = now.getFullYear();
+            calMonth = now.getMonth();
+            renderCal();
+        });
+
+        $root.find('.js-deadline-clear-pop').on('click', function () {
+            applyFecha('');
+            closeGlass();
+        });
+
+        $root.find('.js-deadline-apply').on('click', function () {
+            applyFecha(calDraft);
+            closeGlass();
+        });
+
+        $clear.on('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            applyFecha('');
+        });
+
+        $(document).on('keydown.deadlineGlass', function (e) {
+            if ($glass.is('[hidden]')) {
+                return;
+            }
+            if ((e.key || e.which) === 'Escape' || e.which === 27) {
+                closeGlass();
+            }
+        });
+    }
+
+    function codigoFromTitulo(titulo) {
+        var map = {
+            'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
+            'à': 'a', 'è': 'e', 'ì': 'i', 'ò': 'o', 'ù': 'u',
+            'ä': 'a', 'ë': 'e', 'ï': 'i', 'ö': 'o', 'ü': 'u',
+            'â': 'a', 'ê': 'e', 'î': 'i', 'ô': 'o', 'û': 'u',
+            'ñ': 'n', 'ç': 'c'
+        };
+        var s = String(titulo || '').toLowerCase();
+        var out = '';
+        var i;
+        var ch;
+        for (i = 0; i < s.length; i += 1) {
+            ch = s.charAt(i);
+            if (map[ch]) {
+                ch = map[ch];
+            }
+            if (/[a-z0-9]/.test(ch)) {
+                out += ch;
+            }
+            if (out.length >= 32) {
+                break;
+            }
+        }
+        return out;
+    }
+
+    function initProyectoNuevo($form) {
+        var codes = {};
+        try {
+            codes = JSON.parse($form.attr('data-codes') || '{}') || {};
+        } catch (err) {
+            codes = {};
+        }
+        var $titulo = $form.find('.js-proyecto-titulo');
+        var $cliente = $form.find('.js-proyecto-cliente');
+        var $hint = $form.find('.js-proyecto-code-hint');
+        var $submit = $form.find('.js-proyecto-submit');
+
+        function taken(cliente, codigo) {
+            var list = codes[cliente] || [];
+            var i;
+            for (i = 0; i < list.length; i += 1) {
+                if (list[i] === codigo) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function refresh() {
+            var codigo = codigoFromTitulo($titulo.val());
+            var cliente = $cliente.val() || '';
+            $hint.removeClass('is-ok is-bad');
+            if (!codigo) {
+                $hint.text('código · —');
+                $submit.prop('disabled', true);
+                return;
+            }
+            if (codigo.length < 3) {
+                $hint.addClass('is-bad').text('código · ' + codigo + ' · faltan letras o números (mínimo 3)');
+                $submit.prop('disabled', true);
+                return;
+            }
+            if (taken(cliente, codigo)) {
+                $hint.addClass('is-bad').text('código · ' + codigo + ' · ya existe en este cliente. Cambiá el nombre, por ejemplo un 2 al final.');
+                $submit.prop('disabled', true);
+                return;
+            }
+            $hint.addClass('is-ok').text('código · ' + codigo);
+            $submit.prop('disabled', false);
+        }
+
+        $titulo.on('input', refresh);
+        $cliente.on('change', refresh);
+        refresh();
     }
 })(jQuery);

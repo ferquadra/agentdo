@@ -36,7 +36,7 @@ class ClienteController extends Controller
                 } else {
                     try {
                         $ok = Lock::run($user['empresa'], function () use ($user, $codigo, $nombre) {
-                            return Cliente::create($user['empresa'], $codigo, $nombre);
+                            return Cliente::create($user['empresa'], $codigo, $nombre, $user['usuario']);
                         });
                         if (!$ok) {
                             $error = 'Ese código de cliente ya existe.';

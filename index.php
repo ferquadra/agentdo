@@ -37,6 +37,7 @@ $router->post('/panel/empresa/operadores/{usuario}/borrar', 'EmpresaController@b
 $router->get('/panel/empresa/kit', 'EmpresaController@kit');
 
 $router->post('/panel/{cliente}/{proyecto}/diario', 'PanelController@saveDiario');
+$router->post('/panel/{cliente}/{proyecto}/props', 'PanelController@saveProps');
 $router->post('/panel/{cliente}/{proyecto}/margen/archivo', 'PanelController@addArchivo');
 $router->post('/panel/{cliente}/{proyecto}/margen/{id}/borrar', 'PanelController@deleteMargen');
 $router->post('/panel/{cliente}/{proyecto}/margen', 'PanelController@addMargen');

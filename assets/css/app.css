@@ -268,6 +268,17 @@ body {
     color: var(--text);
 }
 
+.btn-outline-ghost.is-on {
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 12px var(--glow);
+}
+
+.panel-filter-count {
+    opacity: 0.75;
+    font-size: 0.78rem;
+}
+
 .btn-ghost {
     background: transparent;
     border: 1px solid transparent;
@@ -542,6 +553,54 @@ a.admin-code:active {
     border-color: var(--accent);
     box-shadow: 0 0 0 1px var(--glow), 0 8px 24px rgba(0, 0, 0, 0.25);
     color: inherit;
+}
+
+.project-row.is-closed {
+    opacity: 0.58;
+}
+
+.project-row.is-closed:hover {
+    opacity: 0.88;
+}
+
+.project-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.3rem;
+}
+
+.project-tag {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    font-weight: 500;
+    padding: 0.16rem 0.5rem;
+    border-radius: 999px;
+    letter-spacing: 0.02em;
+}
+
+.project-tag.tag-cerrado {
+    color: var(--muted);
+    background: rgba(138, 138, 138, 0.16);
+    border: 1px solid var(--border);
+}
+
+.project-tag.tag-requiere {
+    color: #1a1200;
+    background: #ffb020;
+    border: 1px solid #ffc857;
+}
+
+.project-tag.tag-fecha {
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid var(--border);
+}
+
+.project-tag.tag-fecha.is-overdue {
+    color: #1a0800;
+    background: #ff6a22;
+    border-color: #ff8a4c;
 }
 
 .project-row-main {
@@ -945,8 +1004,19 @@ body.page-workspace .app-main {
 .margen-card-head {
     display: flex;
     justify-content: space-between;
+    align-items: baseline;
     gap: 0.5rem;
     margin-bottom: 0.4rem;
+}
+
+.margen-head-meta {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45rem;
+}
+
+.margen-op {
+    font-size: 0.7rem;
 }
 
 .margen-type {
@@ -1003,15 +1073,325 @@ body.page-workspace .app-main {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
+    flex-wrap: wrap;
+    gap: 0.65rem 1rem;
     padding: 0.7rem 1rem;
     border-bottom: 1px solid var(--border);
     background: linear-gradient(180deg, rgba(245, 78, 0, 0.08), transparent);
 }
 
+.editor-bar-left {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.55rem 0.75rem;
+    min-width: 0;
+    flex: 1;
+}
+
 .editor-clock {
     color: var(--muted);
     font-size: 0.82rem;
+}
+
+.editor-props {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.prop-chip {
+    appearance: none;
+    -webkit-appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.2;
+    padding: 0.28rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    letter-spacing: 0.02em;
+}
+
+button.prop-chip {
+    cursor: pointer;
+}
+
+button.prop-chip:hover,
+button.prop-chip:focus {
+    border-color: var(--text);
+}
+
+.prop-chip.prop-estado.is-abierto {
+    color: #d7ecff;
+    background: rgba(80, 160, 255, 0.16);
+    border-color: rgba(80, 160, 255, 0.42);
+}
+
+.prop-chip.prop-estado.is-cerrado {
+    color: var(--muted);
+    background: rgba(138, 138, 138, 0.16);
+    border-color: var(--border);
+}
+
+.prop-chip.prop-aprob.is-requiere {
+    color: #1a1200;
+    background: #ffb020;
+    border-color: #ffc857;
+    box-shadow: 0 0 14px rgba(255, 176, 32, 0.35);
+}
+
+.prop-chip.prop-aprob.is-aprobado {
+    color: #04140a;
+    background: #2dde7a;
+    border-color: #6affab;
+    box-shadow: 0 0 14px rgba(45, 222, 122, 0.3);
+}
+
+.prop-deadline {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.15rem;
+}
+
+.prop-chip.prop-date {
+    color: var(--muted);
+}
+
+.prop-deadline.has-value .prop-chip.prop-date {
+    color: var(--text);
+}
+
+.prop-deadline.is-overdue .prop-chip.prop-date {
+    color: #1a0800;
+    background: #ff6a22;
+    border-color: #ff8a4c;
+}
+
+.deadline-glass {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+}
+
+.deadline-glass[hidden] {
+    display: none;
+}
+
+.deadline-glass-dim {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    background: rgba(10, 10, 12, 0.28);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+    backdrop-filter: blur(22px) saturate(180%);
+}
+
+.deadline-glass-card {
+    position: relative;
+    z-index: 1;
+    width: min(22rem, 100%);
+    padding: 1.15rem 1.2rem 1rem;
+    border-radius: 22px;
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    background: linear-gradient(165deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.08) 55%, rgba(20, 20, 22, 0.28));
+    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    backdrop-filter: blur(40px) saturate(200%);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.42) inset,
+        0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+        0 28px 70px rgba(0, 0, 0, 0.45);
+    color: var(--text);
+}
+
+.deadline-glass-kicker {
+    margin: 0;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.deadline-glass-value {
+    margin: 0.35rem 0 1rem;
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 1.35rem;
+    font-weight: 600;
+}
+
+.deadline-cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.65rem;
+}
+
+.deadline-cal-month {
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.deadline-cal-nav-btn {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+}
+
+.deadline-cal-nav-btn:hover,
+.deadline-cal-nav-btn:focus {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.deadline-cal-dow,
+.deadline-cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0.2rem;
+    text-align: center;
+}
+
+.deadline-cal-dow {
+    margin-bottom: 0.25rem;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+}
+
+.deadline-cal-day {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    height: 2.05rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    padding: 0;
+    cursor: pointer;
+}
+
+.deadline-cal-day.is-out {
+    opacity: 0.28;
+}
+
+.deadline-cal-day.is-today {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.deadline-cal-day.is-selected,
+.deadline-cal-day:hover,
+.deadline-cal-day:focus {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.deadline-cal-day.is-selected {
+    background: #fff;
+    color: #111;
+    font-weight: 600;
+}
+
+.deadline-glass-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.4rem;
+    margin-top: 1rem;
+}
+
+[data-theme="light"] .deadline-glass-dim {
+    background: rgba(240, 240, 236, 0.42);
+}
+
+[data-theme="light"] .deadline-glass-card {
+    border-color: rgba(255, 255, 255, 0.7);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.42));
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.9) inset,
+        0 20px 50px rgba(20, 20, 20, 0.12);
+}
+
+[data-theme="light"] .deadline-cal-nav-btn {
+    border-color: rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.55);
+}
+
+[data-theme="light"] .deadline-cal-day.is-today {
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .deadline-cal-day.is-selected {
+    background: #111;
+    color: #fff;
+}
+
+.prop-clear {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 999px;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.prop-clear:hover,
+.prop-clear:focus {
+    color: var(--text);
+    background: var(--surface);
+}
+
+[data-theme="light"] .prop-chip.prop-estado.is-abierto {
+    color: #0b3d6e;
+    background: rgba(80, 160, 255, 0.16);
+    border-color: rgba(40, 120, 210, 0.4);
+}
+
+.form-hint,
+.proyecto-code-hint {
+    margin-top: 0.45rem;
+    font-size: 0.8rem;
+}
+
+.proyecto-code-hint {
+    color: var(--muted);
+}
+
+.proyecto-code-hint.is-ok {
+    color: var(--text);
+}
+
+.proyecto-code-hint.is-bad {
+    color: #ff8a4c;
+}
+
+.form-check-label {
+    color: var(--text);
 }
 
 .status-chip {
