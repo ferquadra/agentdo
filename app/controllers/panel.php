@@ -52,13 +52,16 @@ class PanelController extends Controller
             if ($isCerrado) {
                 continue;
             }
-            $titulo = isset($p['titulo']) ? (string) $p['titulo'] : '';
-            if ($titulo === '') {
+            $cliente = !empty($p['cliente_nombre']) ? (string) $p['cliente_nombre'] : '';
+            if ($cliente === '') {
+                $cliente = isset($p['cliente']) ? (string) $p['cliente'] : '';
+            }
+            if ($cliente === '') {
                 continue;
             }
             $fechaLimite = !empty($p['fecha_limite']) ? (string) $p['fecha_limite'] : '';
             $abiertos[] = array(
-                'titulo' => $titulo,
+                'cliente' => $cliente,
                 'fecha_limite' => $fechaLimite,
             );
         }
@@ -67,7 +70,7 @@ class PanelController extends Controller
             $fa = $a['fecha_limite'];
             $fb = $b['fecha_limite'];
             if ($fa === '' && $fb === '') {
-                return strcmp($a['titulo'], $b['titulo']);
+                return strcmp($a['cliente'], $b['cliente']);
             }
             if ($fa === '') {
                 return 1;
@@ -76,7 +79,7 @@ class PanelController extends Controller
                 return -1;
             }
             if ($fa === $fb) {
-                return strcmp($a['titulo'], $b['titulo']);
+                return strcmp($a['cliente'], $b['cliente']);
             }
             return strcmp($fa, $fb);
         });
@@ -84,9 +87,9 @@ class PanelController extends Controller
         $messages = array();
         foreach ($abiertos as $item) {
             if ($item['fecha_limite'] !== '') {
-                $messages[] = format_date($item['fecha_limite']) . ' · ' . $item['titulo'];
+                $messages[] = format_date($item['fecha_limite']) . ' · ' . $item['cliente'];
             } else {
-                $messages[] = $item['titulo'];
+                $messages[] = $item['cliente'];
             }
         }
 

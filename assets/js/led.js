@@ -153,7 +153,7 @@
         speed: 90,
         direction: 'left',
         gap: 0.24,
-        separator: '   ·   '
+        separator: ' · '
     };
 
     function glyphFor(ch) {
