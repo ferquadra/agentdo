@@ -3,6 +3,10 @@ class HomeController extends Controller
 {
     public function index(Request $request)
     {
+        if (Auth::check()) {
+            $this->redirect('panel');
+        }
+
         $this->view('home/index', array(
             'title' => APP_NAME,
             'page' => 'home',

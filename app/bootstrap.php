@@ -5,7 +5,7 @@ ini_set('display_errors', '1');
 define('ROOT_PATH', str_replace('\\', '/', dirname(dirname(__FILE__))));
 define('APP_PATH', ROOT_PATH . '/app');
 define('APP_NAME', 'AgentDo');
-define('APP_VERSION', '1.2');
+define('APP_VERSION', '1.3');
 define('LOGIN_FAIL_MAX', 10);
 
 if (session_status() === PHP_SESSION_NONE) {
