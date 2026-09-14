@@ -22,6 +22,7 @@ $fechaVencida = $fechaLimite !== '' && $estado === 'abierto' && date_is_past($fe
     data-archivo-url="<?php echo e($archivoUrl); ?>"
     data-csrf="<?php echo e($csrf); ?>"
     data-can-write="<?php echo $canWrite ? '1' : '0'; ?>"
+    data-max-upload="<?php echo (int) Storage::maxUploadBytes(); ?>"
     data-share-base="<?php echo e($shareBase); ?>">
     <div class="workspace-top">
         <a class="workspace-back mono" href="<?php echo e(url('panel')); ?>">← panel</a>
@@ -62,7 +63,7 @@ $fechaVencida = $fechaLimite !== '' && $estado === 'abierto' && date_is_past($fe
                 <div class="dropzone js-dropzone" tabindex="0">
                     <i class="bi bi-cloud-arrow-up"></i>
                     <p>Arrastrá un archivo o pegá una imagen</p>
-                    <span class="mono dropzone-hint">zip pdf xlsx docx jpg png webp mp3 mp4 wmv · Ctrl+V · 25MB</span>
+                    <span class="mono dropzone-hint">zip pdf xlsx docx jpg png webp mp3 mp4 wmv · Ctrl+V · 20MB · 3GB total</span>
                     <button type="button" class="btn btn-outline-ghost btn-sm dropzone-pick js-pick-file">Elegir archivo</button>
                     <input type="file" class="dropzone-input js-file-input" tabindex="-1" accept=".zip,.pdf,.xlsx,.docx,.jpg,.jpeg,.png,.webp,.mp3,.mp4,.wmv,image/jpeg,image/png,image/webp">
                 </div>

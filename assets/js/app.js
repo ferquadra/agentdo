@@ -234,6 +234,10 @@
         var diarioUrl = $root.attr('data-diario-url');
         var archivoUrl = $root.attr('data-archivo-url');
         var csrf = $root.attr('data-csrf');
+        var maxUpload = parseInt($root.attr('data-max-upload'), 10);
+        if (!maxUpload) {
+            maxUpload = 20 * 1024 * 1024;
+        }
         var $ta = $('#diario');
         var $chip = $('.js-status-chip');
         var $clock = $('.js-saved-at');
@@ -315,8 +319,27 @@
         var $file = $('.js-file-input');
         var uploading = false;
 
+        function uploadFailMessage(xhr, fallback) {
+            if (xhr && xhr.responseJSON && xhr.responseJSON.error) {
+                return xhr.responseJSON.error;
+            }
+            if (xhr && xhr.responseText) {
+                try {
+                    var parsed = JSON.parse(xhr.responseText);
+                    if (parsed && parsed.error) {
+                        return parsed.error;
+                    }
+                } catch (e) {}
+            }
+            return fallback;
+        }
+
         function uploadFile(file) {
             if (!file || !canWrite || uploading) {
+                return;
+            }
+            if (file.size > maxUpload) {
+                alert('El archivo supera 20 MB.');
                 return;
             }
             uploading = true;
@@ -348,10 +371,10 @@
                     alert((res && res.error) ? res.error : 'No se pudo subir');
                     setStatus('saved', 'Guardado');
                 }
-            }).fail(function () {
+            }).fail(function (xhr) {
                 uploading = false;
                 $dz.removeClass('is-drag');
-                alert('No se pudo subir el archivo');
+                alert(uploadFailMessage(xhr, 'No se pudo subir el archivo'));
                 setStatus('saved', 'Guardado');
             });
         }

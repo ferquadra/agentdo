@@ -76,6 +76,7 @@ class Margen
         if ($size === false || $size > Storage::maxUploadBytes()) {
             throw new InvalidArgumentException('archivo_grande');
         }
+        Storage::assertCanStore($size);
 
         $hash = Storage::generateHash(40);
         $dir = Storage::margenDir($empresa, $cliente, $proyecto, $hash);

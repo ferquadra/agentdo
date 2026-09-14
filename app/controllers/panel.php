@@ -292,28 +292,42 @@ class PanelController extends Controller
 
         $file = $_FILES['archivo'];
         if (!isset($file['error']) || $file['error'] !== UPLOAD_ERR_OK) {
+            $tooBig = isset($file['error'])
+                && ($file['error'] === UPLOAD_ERR_INI_SIZE || $file['error'] === UPLOAD_ERR_FORM_SIZE);
+            $msg = $tooBig ? $this->uploadError('archivo_grande') : 'Error al subir el archivo.';
             if ($wantsJson) {
-                $this->json(array('ok' => false, 'error' => 'upload_error'), 400);
+                $this->json(array('ok' => false, 'error' => $tooBig ? $msg : 'upload_error'), 400);
             }
-            $_SESSION['flash_error'] = 'Error al subir el archivo.';
+            $_SESSION['flash_error'] = $msg;
+            $this->redirect($back);
+        }
+
+        if (isset($file['size']) && $file['size'] > Storage::maxUploadBytes()) {
+            $msg = $this->uploadError('archivo_grande');
+            if ($wantsJson) {
+                $this->json(array('ok' => false, 'error' => $msg), 400);
+            }
+            $_SESSION['flash_error'] = $msg;
             $this->redirect($back);
         }
 
         try {
-            $hash = Lock::run($empresa, function () use ($empresa, $cliente, $proyecto, $file, $user) {
-                return Margen::addArchivo(
-                    $empresa,
-                    $cliente,
-                    $proyecto,
-                    $file['tmp_name'],
-                    $file['name'],
-                    $user['usuario']
-                );
+            $hash = Lock::runGlobal(function () use ($empresa, $cliente, $proyecto, $file, $user) {
+                return Lock::run($empresa, function () use ($empresa, $cliente, $proyecto, $file, $user) {
+                    return Margen::addArchivo(
+                        $empresa,
+                        $cliente,
+                        $proyecto,
+                        $file['tmp_name'],
+                        $file['name'],
+                        $user['usuario']
+                    );
+                });
             });
         } catch (InvalidArgumentException $e) {
             $msg = $this->uploadError($e->getMessage());
             if ($wantsJson) {
-                $this->json(array('ok' => false, 'error' => $this->uploadError($e->getMessage())), 400);
+                $this->json(array('ok' => false, 'error' => $msg), 400);
             }
             $_SESSION['flash_error'] = $msg;
             $this->redirect($back);
@@ -375,7 +389,8 @@ class PanelController extends Controller
     {
         $map = array(
             'extension_invalida' => 'Extensión no permitida.',
-            'archivo_grande' => 'El archivo supera 25 MB.',
+            'archivo_grande' => 'El archivo supera 20 MB.',
+            'cuota_total' => 'Se superó el límite de 3 GB en total. No se puede guardar el archivo.',
             'upload_invalido' => 'Archivo inválido.',
         );
         return isset($map[$code]) ? $map[$code] : 'No se pudo subir el archivo.';

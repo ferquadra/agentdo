@@ -134,6 +134,51 @@ class Storage
 
     public static function maxUploadBytes()
     {
-        return 25 * 1024 * 1024;
+        return 20 * 1024 * 1024;
+    }
+
+    public static function maxTotalBytes()
+    {
+        return 3 * 1024 * 1024 * 1024;
+    }
+
+    public static function usedBytes()
+    {
+        return self::dirBytes(self::webfiles());
+    }
+
+    public static function assertCanStore($extraBytes)
+    {
+        $extra = (int) $extraBytes;
+        if ($extra < 0) {
+            $extra = 0;
+        }
+        if (self::usedBytes() + $extra > self::maxTotalBytes()) {
+            throw new InvalidArgumentException('cuota_total');
+        }
+    }
+
+    private static function dirBytes($dir)
+    {
+        if (!is_dir($dir)) {
+            return 0;
+        }
+        $total = 0;
+        try {
+            $it = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)
+            );
+            foreach ($it as $info) {
+                if ($info->isFile()) {
+                    $size = $info->getSize();
+                    if ($size !== false && $size > 0) {
+                        $total += $size;
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            throw new RuntimeException('cuota_medir');
+        }
+        return $total;
     }
 }
