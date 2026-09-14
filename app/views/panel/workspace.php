@@ -61,9 +61,10 @@ $fechaVencida = $fechaLimite !== '' && $estado === 'abierto' && date_is_past($fe
 
                 <div class="dropzone js-dropzone" tabindex="0">
                     <i class="bi bi-cloud-arrow-up"></i>
-                    <p>Arrastrá un archivo o hacé click</p>
-                    <span class="mono dropzone-hint">zip pdf xlsx docx jpg png webp mp3 mp4 wmv · 25MB</span>
-                    <input type="file" class="dropzone-input js-file-input" accept=".zip,.pdf,.xlsx,.docx,.jpg,.png,.webp,.mp3,.mp4,.wmv">
+                    <p>Arrastrá un archivo o pegá una imagen</p>
+                    <span class="mono dropzone-hint">zip pdf xlsx docx jpg png webp mp3 mp4 wmv · Ctrl+V · 25MB</span>
+                    <button type="button" class="btn btn-outline-ghost btn-sm dropzone-pick js-pick-file">Elegir archivo</button>
+                    <input type="file" class="dropzone-input js-file-input" tabindex="-1" accept=".zip,.pdf,.xlsx,.docx,.jpg,.jpeg,.png,.webp,.mp3,.mp4,.wmv,image/jpeg,image/png,image/webp">
                 </div>
             <?php endif; ?>
 
@@ -87,13 +88,32 @@ $fechaVencida = $fechaLimite !== '' && $estado === 'abierto' && date_is_past($fe
                             <?php elseif ($item['tipo'] === 'enlace') : ?>
                                 <a class="margen-link" href="<?php echo e($item['cuerpo']); ?>" target="_blank" rel="noopener noreferrer"><?php echo e($item['cuerpo']); ?></a>
                             <?php else : ?>
-                                <div class="margen-file">
-                                    <a class="margen-link" href="<?php echo e(share_url($item['id'], $item['archivo'])); ?>" target="_blank" rel="noopener noreferrer">
-                                        <i class="bi bi-paperclip"></i> <?php echo e($item['archivo']); ?>
-                                    </a>
-                                    <button type="button" class="btn btn-ghost btn-sm js-copy-link" data-link="<?php echo e(share_url($item['id'], $item['archivo'])); ?>" title="Copiar enlace">
-                                        <i class="bi bi-clipboard"></i>
-                                    </button>
+                                <?php
+                                $archivoNombre = isset($item['archivo']) ? $item['archivo'] : '';
+                                $archivoShare = share_url($item['id'], $archivoNombre);
+                                $esImagen = Storage::isImageFilename($archivoNombre);
+                                $archivoLabel = $archivoNombre;
+                                if (preg_match('/^(image[1-9][0-9]*)\.(png|jpe?g|webp)$/i', $archivoNombre, $mLabel)) {
+                                    $archivoLabel = $mLabel[1];
+                                }
+                                ?>
+                                <div class="margen-file<?php echo $esImagen ? ' is-image' : ''; ?>">
+                                    <?php if ($esImagen) : ?>
+                                        <a class="margen-thumb-link" href="<?php echo e($archivoShare); ?>" target="_blank" rel="noopener noreferrer">
+                                            <img class="margen-thumb" src="<?php echo e($archivoShare); ?>" alt="<?php echo e($archivoLabel); ?>" loading="lazy">
+                                        </a>
+                                    <?php endif; ?>
+                                    <div class="margen-file-meta">
+                                        <a class="margen-link mono" href="<?php echo e($archivoShare); ?>" target="_blank" rel="noopener noreferrer" title="<?php echo e($archivoNombre); ?>">
+                                            <?php if (!$esImagen) : ?>
+                                                <i class="bi bi-paperclip"></i>
+                                            <?php endif; ?>
+                                            <?php echo e($archivoLabel); ?>
+                                        </a>
+                                        <button type="button" class="btn btn-ghost btn-sm js-copy-link" data-link="<?php echo e($archivoShare); ?>" title="Copiar enlace">
+                                            <i class="bi bi-clipboard"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             <?php endif; ?>
                             <?php if ($canWrite) : ?>

@@ -118,7 +118,18 @@ class Storage
 
     public static function allowedExtensions()
     {
-        return array('zip', 'pdf', 'xlsx', 'docx', 'jpg', 'png', 'webp', 'mp3', 'mp4', 'wmv');
+        return array('zip', 'pdf', 'xlsx', 'docx', 'jpg', 'jpeg', 'png', 'webp', 'mp3', 'mp4', 'wmv');
+    }
+
+    public static function imageExtensions()
+    {
+        return array('jpg', 'jpeg', 'png', 'webp');
+    }
+
+    public static function isImageFilename($name)
+    {
+        $ext = strtolower(pathinfo((string) $name, PATHINFO_EXTENSION));
+        return in_array($ext, self::imageExtensions(), true);
     }
 
     public static function maxUploadBytes()

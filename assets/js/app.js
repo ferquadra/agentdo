@@ -313,14 +313,21 @@
 
         var $dz = $('.js-dropzone');
         var $file = $('.js-file-input');
+        var uploading = false;
 
         function uploadFile(file) {
-            if (!file || !canWrite) {
+            if (!file || !canWrite || uploading) {
                 return;
             }
+            uploading = true;
+            var name = file.uploadName || file.name || '';
             var fd = new FormData();
             fd.append('csrf', csrf);
-            fd.append('archivo', file);
+            if (name) {
+                fd.append('archivo', file, name);
+            } else {
+                fd.append('archivo', file);
+            }
             setStatus('saving', 'Subiendo...');
             $.ajax({
                 url: archivoUrl,
@@ -336,13 +343,87 @@
                 if (res && res.ok) {
                     window.location.reload();
                 } else {
+                    uploading = false;
+                    $dz.removeClass('is-drag');
                     alert((res && res.error) ? res.error : 'No se pudo subir');
                     setStatus('saved', 'Guardado');
                 }
             }).fail(function () {
+                uploading = false;
+                $dz.removeClass('is-drag');
                 alert('No se pudo subir el archivo');
                 setStatus('saved', 'Guardado');
             });
+        }
+
+        function imageExtFromClipboard(type, name) {
+            type = (type || '').toLowerCase();
+            name = (name || '').toLowerCase();
+            if (type === 'image/png' || /\.png$/.test(name)) {
+                return 'png';
+            }
+            if (type === 'image/webp' || /\.webp$/.test(name)) {
+                return 'webp';
+            }
+            if (type === 'image/jpeg' || type === 'image/jpg' || /\.jpe?g$/.test(name)) {
+                return 'jpg';
+            }
+            return '';
+        }
+
+        function namedImageFile(file) {
+            if (!file) {
+                return null;
+            }
+            var ext = imageExtFromClipboard(file.type, file.name);
+            if (!ext) {
+                return null;
+            }
+            var orig = file.name ? String(file.name).replace(/\\/g, '/').split('/').pop() : '';
+            var filename = 'image.' + ext;
+            if (orig && /\.png$|\.jpg$|\.webp$/i.test(orig)) {
+                filename = orig.toLowerCase();
+            } else if (orig && /\.jpeg$/i.test(orig)) {
+                filename = orig.toLowerCase().replace(/\.jpeg$/i, '.jpg');
+            }
+            if (file.name === filename) {
+                return file;
+            }
+            if (typeof File === 'function') {
+                try {
+                    return new File([file], filename, { type: file.type || '' });
+                } catch (err) {}
+            }
+            file.uploadName = filename;
+            return file;
+        }
+
+        function imageFileFromClipboard(data) {
+            if (!data) {
+                return null;
+            }
+            var i;
+            var file;
+            if (data.items && data.items.length) {
+                for (i = 0; i < data.items.length; i++) {
+                    if (data.items[i].kind !== 'file') {
+                        continue;
+                    }
+                    file = namedImageFile(data.items[i].getAsFile());
+                    if (file) {
+                        return file;
+                    }
+                }
+            }
+            if (data.files && data.files.length) {
+                for (i = 0; i < data.files.length; i++) {
+                    file = namedImageFile(data.files[i]);
+                    if (file) {
+                        return file;
+                    }
+                }
+            }
+            return null;
         }
 
         $dz.on('dragenter dragover', function (e) {
@@ -364,6 +445,100 @@
                 this.value = '';
             }
         });
+
+        function openFilePicker() {
+            var el = $file.get(0);
+            if (el) {
+                el.click();
+            }
+        }
+
+        function readClipboardImage() {
+            if (!navigator.clipboard || typeof navigator.clipboard.read !== 'function') {
+                return Promise.resolve(null);
+            }
+            return navigator.clipboard.read().then(function (items) {
+                var i;
+                var item;
+                var type;
+                var preferred = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+                var p;
+                for (i = 0; i < items.length; i++) {
+                    item = items[i];
+                    type = '';
+                    for (p = 0; p < preferred.length; p++) {
+                        if (item.types.indexOf(preferred[p]) !== -1) {
+                            type = preferred[p];
+                            break;
+                        }
+                    }
+                    if (type) {
+                        return item.getType(type).then(function (blob) {
+                            var file;
+                            try {
+                                file = new File([blob], '', { type: blob.type || type });
+                            } catch (err) {
+                                return namedImageFile(blob);
+                            }
+                            return namedImageFile(file);
+                        });
+                    }
+                }
+                return null;
+            }).catch(function () {
+                return null;
+            });
+        }
+
+        $dz.on('click', '.js-pick-file', function (e) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            openFilePicker();
+        });
+
+        $dz.on('click', function (e) {
+            if (!canWrite || uploading) {
+                return;
+            }
+            if ($(e.target).closest('.js-pick-file').length) {
+                return;
+            }
+            if (!navigator.clipboard || typeof navigator.clipboard.read !== 'function') {
+                openFilePicker();
+                return;
+            }
+            readClipboardImage().then(function (img) {
+                if (img) {
+                    $dz.addClass('is-drag');
+                    uploadFile(img);
+                    return;
+                }
+                setStatus('writing', 'No hay imagen copiada');
+            });
+        });
+
+        $dz.on('keydown', function (e) {
+            if (e.key !== 'Enter' && e.key !== ' ') {
+                return;
+            }
+            e.preventDefault();
+            $dz.trigger('click');
+        });
+
+        function onWorkspacePaste(e) {
+            if (!canWrite) {
+                return;
+            }
+            var img = imageFileFromClipboard(e.clipboardData);
+            if (!img) {
+                return;
+            }
+            e.preventDefault();
+            $dz.addClass('is-drag');
+            uploadFile(img);
+        }
+
+        document.addEventListener('paste', onWorkspacePaste, true);
 
         initWorkspaceProps($root, csrf, canWrite);
     }

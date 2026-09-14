@@ -180,21 +180,21 @@ Queda `marquee.js?v=1.2.1789014584` y la URL cambia sola con cada guardado, en d
 
 Sirve como ejemplo de referencia. Tres puntos de contacto, nada más:
 
-**1. Carga condicional** en `app/views/layouts/default.php`, solo en el panel:
+**1. Carga condicional** en `app/views/layouts/default.php`, solo cuando hay `$ledMessages`:
 
 ```php
-<?php if ($page === 'panel') : ?>
+<?php if (isset($ledMessages)) : ?>
     <link rel="stylesheet" href="<?php echo e(asset('marquee/marquee.css')); ?>">
 <?php endif; ?>
 ```
 
 ```php
-<?php if ($page === 'panel') : ?>
+<?php if (isset($ledMessages)) : ?>
     <script src="<?php echo e(asset('marquee/marquee.js')); ?>"></script>
 <?php endif; ?>
 ```
 
-**2. El markup** en `app/views/panel/index.php`, entre el encabezado y el listado de proyectos.
+**2. El markup** en `app/views/partials/led_marquee.php`, montado al inicio del `body` en el layout (por encima del logo y la botonera), a todo el ancho. Solo se pinta cuando el controller pasa `$ledMessages` (hoy: el listado del panel).
 
 **3. Las frases** las arma `PanelController::buildLedMessages()` en `app/controllers/panel.php`. Un proyecto entra si cumple las tres condiciones:
 

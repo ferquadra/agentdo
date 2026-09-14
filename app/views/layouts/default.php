@@ -20,11 +20,14 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?php echo e(asset('css/app.css')); ?>">
-    <?php if ($page === 'panel') : ?>
+    <?php if (isset($ledMessages)) : ?>
         <link rel="stylesheet" href="<?php echo e(asset('marquee/marquee.css')); ?>">
     <?php endif; ?>
 </head>
-<body class="page-<?php echo e($page); ?>">
+<body class="page-<?php echo e($page); ?><?php echo isset($ledMessages) ? ' has-led-marquee' : ''; ?>">
+    <?php if (isset($ledMessages)) : ?>
+        <?php require APP_PATH . '/views/partials/led_marquee.php'; ?>
+    <?php endif; ?>
     <?php require APP_PATH . '/views/partials/header.php'; ?>
     <main class="app-main">
         <?php echo $body; ?>
@@ -35,7 +38,7 @@
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="<?php echo e(asset('js/app.js')); ?>"></script>
-    <?php if ($page === 'panel') : ?>
+    <?php if (isset($ledMessages)) : ?>
         <script src="<?php echo e(asset('marquee/marquee.js')); ?>"></script>
     <?php endif; ?>
 </body>

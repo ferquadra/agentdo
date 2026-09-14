@@ -313,7 +313,7 @@ class PanelController extends Controller
         } catch (InvalidArgumentException $e) {
             $msg = $this->uploadError($e->getMessage());
             if ($wantsJson) {
-                $this->json(array('ok' => false, 'error' => $e->getMessage()), 400);
+                $this->json(array('ok' => false, 'error' => $this->uploadError($e->getMessage())), 400);
             }
             $_SESSION['flash_error'] = $msg;
             $this->redirect($back);

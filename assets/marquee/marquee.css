@@ -2,7 +2,7 @@
 
 .led-board {
     width: 100%;
-    height: 72px;
+    height: var(--marquee-h, 72px);
     margin: 0;
     opacity: 0;
     transition: opacity 0.35s ease;
@@ -37,7 +37,7 @@
 
 @media (max-width: 575.98px) {
     .led-board {
-        height: 52px;
+        height: var(--marquee-h, 52px);
     }
 }
 

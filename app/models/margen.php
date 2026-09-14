@@ -59,8 +59,15 @@ class Margen
     {
         $filename = Storage::normalizeFilename($originalName);
         $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        if ($ext === 'jpeg') {
+            $ext = 'jpg';
+            $filename = preg_replace('/\.jpeg$/i', '.jpg', $filename);
+        }
         if (!in_array($ext, Storage::allowedExtensions(), true)) {
             throw new InvalidArgumentException('extension_invalida');
+        }
+        if (in_array($ext, Storage::imageExtensions(), true)) {
+            $filename = self::nextImageFilename($empresa, $cliente, $proyecto, $ext);
         }
         if (!is_file($tmpPath)) {
             throw new InvalidArgumentException('upload_invalido');
@@ -113,6 +120,24 @@ class Margen
         }
         Proyecto::touch($empresa, $item['cliente'], $item['proyecto']);
         return true;
+    }
+
+    private static function nextImageFilename($empresa, $cliente, $proyecto, $ext)
+    {
+        $max = 0;
+        $rows = self::listByProyecto($empresa, $cliente, $proyecto);
+        foreach ($rows as $row) {
+            if (empty($row['archivo'])) {
+                continue;
+            }
+            if (preg_match('/^image([1-9][0-9]*)\.(png|jpe?g|webp)$/', strtolower($row['archivo']), $m)) {
+                $n = (int) $m[1];
+                if ($n > $max) {
+                    $max = $n;
+                }
+            }
+        }
+        return 'image' . ($max + 1) . '.' . $ext;
     }
 
     private static function insert($empresa, $cliente, $proyecto, $tipo, $cuerpo, $archivo, $operador = '')

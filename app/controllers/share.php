@@ -103,6 +103,7 @@ class ShareController extends Controller
             'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             'jpg' => 'image/jpeg',
+            'jpeg' => 'image/jpeg',
             'png' => 'image/png',
             'webp' => 'image/webp',
             'mp3' => 'audio/mpeg',
